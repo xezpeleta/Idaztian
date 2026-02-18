@@ -2,6 +2,7 @@ import { EditorView } from '@codemirror/view';
 import { EditorState } from '@codemirror/state';
 import { syntaxTree } from '@codemirror/language';
 import { toggleWrap, setLinePrefix } from '../utils/markdown';
+import { TableData, rebuildTable } from '../utils/table';
 
 // ── Formatting commands ────────────────────────────────────────────────────
 
@@ -178,4 +179,116 @@ export function isBlockquoteActive(state: EditorState): boolean {
     const head = state.selection.main.head;
     const line = state.doc.lineAt(head);
     return /^>/.test(line.text);
+}
+
+// ── Table manipulation commands ────────────────────────────────────────────
+// Each function receives the current TableData (including document positions)
+// and dispatches a single replacement transaction via rebuildTable().
+
+/** Insert a blank data row before the row at `dataRowIdx` (0-based among data rows). */
+export function tableAddRowAbove(view: EditorView, data: TableData, dataRowIdx: number): void {
+    const newRows = [...data.rows];
+    newRows.splice(dataRowIdx, 0, data.headers.map(() => ''));
+    rebuildTable(view, data, data.headers, newRows);
+}
+
+/** Insert a blank data row after the row at `dataRowIdx`. */
+export function tableAddRowBelow(view: EditorView, data: TableData, dataRowIdx: number): void {
+    const newRows = [...data.rows];
+    newRows.splice(dataRowIdx + 1, 0, data.headers.map(() => ''));
+    rebuildTable(view, data, data.headers, newRows);
+}
+
+/** Swap the row at `dataRowIdx` with the one above it. */
+export function tableMoveRowUp(view: EditorView, data: TableData, dataRowIdx: number): void {
+    if (dataRowIdx <= 0) return;
+    const newRows = [...data.rows];
+    [newRows[dataRowIdx - 1], newRows[dataRowIdx]] = [newRows[dataRowIdx], newRows[dataRowIdx - 1]];
+    rebuildTable(view, data, data.headers, newRows);
+}
+
+/** Swap the row at `dataRowIdx` with the one below it. */
+export function tableMoveRowDown(view: EditorView, data: TableData, dataRowIdx: number): void {
+    if (dataRowIdx >= data.rows.length - 1) return;
+    const newRows = [...data.rows];
+    [newRows[dataRowIdx], newRows[dataRowIdx + 1]] = [newRows[dataRowIdx + 1], newRows[dataRowIdx]];
+    rebuildTable(view, data, data.headers, newRows);
+}
+
+/** Duplicate the row at `dataRowIdx`, inserting the copy directly below. */
+export function tableDuplicateRow(view: EditorView, data: TableData, dataRowIdx: number): void {
+    const newRows = [...data.rows];
+    newRows.splice(dataRowIdx + 1, 0, [...(data.rows[dataRowIdx] ?? [])]);
+    rebuildTable(view, data, data.headers, newRows);
+}
+
+/** Delete the row at `dataRowIdx`. Requires at least two data rows to proceed. */
+export function tableDeleteRow(view: EditorView, data: TableData, dataRowIdx: number): void {
+    if (data.rows.length <= 1) return;
+    rebuildTable(view, data, data.headers, data.rows.filter((_, i) => i !== dataRowIdx));
+}
+
+/** Insert a blank column to the left of column `colIdx` (0-based). */
+export function tableAddColumnLeft(view: EditorView, data: TableData, colIdx: number): void {
+    const newHeaders = [...data.headers];
+    newHeaders.splice(colIdx, 0, 'Column');
+    const newRows = data.rows.map((row) => {
+        const r = [...row];
+        r.splice(colIdx, 0, '');
+        return r;
+    });
+    rebuildTable(view, data, newHeaders, newRows);
+}
+
+/** Insert a blank column to the right of column `colIdx`. */
+export function tableAddColumnRight(view: EditorView, data: TableData, colIdx: number): void {
+    tableAddColumnLeft(view, data, colIdx + 1);
+}
+
+/** Swap column `colIdx` with the one to its left. */
+export function tableMoveColumnLeft(view: EditorView, data: TableData, colIdx: number): void {
+    if (colIdx <= 0) return;
+    const swap = <T>(arr: T[]): T[] => {
+        const r = [...arr];
+        [r[colIdx - 1], r[colIdx]] = [r[colIdx], r[colIdx - 1]];
+        return r;
+    };
+    rebuildTable(view, data, swap(data.headers), data.rows.map(swap));
+}
+
+/** Swap column `colIdx` with the one to its right. */
+export function tableMoveColumnRight(view: EditorView, data: TableData, colIdx: number): void {
+    if (colIdx >= data.headers.length - 1) return;
+    const swap = <T>(arr: T[]): T[] => {
+        const r = [...arr];
+        [r[colIdx], r[colIdx + 1]] = [r[colIdx + 1], r[colIdx]];
+        return r;
+    };
+    rebuildTable(view, data, swap(data.headers), data.rows.map(swap));
+}
+
+/** Delete column `colIdx`. Requires at least two columns to proceed. */
+export function tableDeleteColumn(view: EditorView, data: TableData, colIdx: number): void {
+    if (data.headers.length <= 1) return;
+    rebuildTable(
+        view, data,
+        data.headers.filter((_, i) => i !== colIdx),
+        data.rows.map((row) => row.filter((_, i) => i !== colIdx))
+    );
+}
+
+/** Sort data rows by column `colIdx` in ascending or descending order. */
+export function tableSortByColumn(
+    view: EditorView,
+    data: TableData,
+    colIdx: number,
+    direction: 'asc' | 'desc'
+): void {
+    const sorted = [...data.rows].sort((a, b) => {
+        const aVal = (a[colIdx] ?? '').trim().toLowerCase();
+        const bVal = (b[colIdx] ?? '').trim().toLowerCase();
+        const cmp = aVal < bVal ? -1 : aVal > bVal ? 1 : 0;
+        return direction === 'asc' ? cmp : -cmp;
+    });
+    rebuildTable(view, data, data.headers, sorted);
 }

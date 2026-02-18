@@ -1,48 +1,34 @@
 import { Range, StateField } from '@codemirror/state';
 import { EditorState } from '@codemirror/state';
-import {
-    Decoration, DecorationSet, EditorView,
-    WidgetType, keymap,
-} from '@codemirror/view';
+import { Decoration, DecorationSet, EditorView, WidgetType } from '@codemirror/view';
 import { syntaxTree } from '@codemirror/language';
-import { isCursorInNodeLines } from '../../utils/cursor';
+import {
+    TableData, LineInfo, parseCells, isSeparatorLine,
+    buildTableMarkdown, rebuildTable,
+} from '../../utils/table';
+import { showTableContextMenu } from '../context-menu';
 
 /**
- * Live-preview extension for GFM tables.
+ * Live-preview extension for GFM tables — "always rendered" approach.
  *
- * IMPORTANT: block decorations (block: true) MUST live in a StateField, not a
- * ViewPlugin. ViewPlugin only allows non-block (inline/line) decorations.
+ * The table is ALWAYS displayed as an HTML <table> widget, even when the
+ * cursor is inside. Cells are contenteditable; changes are synced back to
+ * the markdown source on cell blur.
  *
- * Behavior:
- * - Cursor away: render a fully-styled HTML <table> widget; clicking a row enters edit mode
- * - Cursor in table: apply line-level decorations (header row, hide separator, row styling)
- * - Tab / Shift+Tab: navigate between cells
- * - Hover handles: right-edge "+" to add column, bottom-edge "+" to add row
+ * ## Key design: mutable TableRefs
+ *
+ * Every event-listener closure captures a `TableRefs` object rather than
+ * capturing `data` / the widget directly.  CM6 calls `updateDOM()` whenever
+ * the widget changes; `updateDOM` updates the refs in place so all existing
+ * closures immediately see the latest `data` (correct doc positions) and the
+ * latest `widget` (correct method implementations).  This prevents:
+ *   - Stale document positions in blur → sync dispatches
+ *   - Infinite re-render loops (eq=false → updateDOM=true → DOM preserved)
+ *
+ * Block decorations MUST live in a StateField — ViewPlugin cannot produce them.
  */
 
-// ── Helpers ────────────────────────────────────────────────────────────────
-
-function parseCells(lineText: string): string[] {
-    let s = lineText.trim();
-    if (s.startsWith('|')) s = s.slice(1);
-    if (s.endsWith('|')) s = s.slice(0, -1);
-    return s.split('|').map((c) => c.trim());
-}
-
-function isSeparatorLine(text: string): boolean {
-    const t = text.trim();
-    return t.length > 0 && /^\|?[\s|:\-]+\|?$/.test(t) && t.includes('-');
-}
-
-interface LineInfo { from: number; to: number; text: string }
-
-interface TableData {
-    headers: string[];
-    rows: string[][];
-    allLines: LineInfo[];
-    nodeFrom: number;
-    nodeTo: number;
-}
+// ── Table parsing ──────────────────────────────────────────────────────────
 
 function parseTable(state: EditorState, nodeFrom: number, nodeTo: number): TableData | null {
     const allLines: LineInfo[] = [];
@@ -54,165 +40,292 @@ function parseTable(state: EditorState, nodeFrom: number, nodeTo: number): Table
         pos = line.to + 1;
     }
     if (allLines.length < 2) return null;
-
     const headers = parseCells(allLines[0].text);
+    if (headers.length === 0) return null;
     const rows = allLines
         .slice(2)
         .filter((l) => l.text.trim() && !isSeparatorLine(l.text))
         .map((l) => parseCells(l.text));
-
     return { headers, rows, allLines, nodeFrom, nodeTo };
 }
 
-// ── Table Widget (cursor away) ─────────────────────────────────────────────
+// ── Sync DOM → markdown ────────────────────────────────────────────────────
+
+function syncTableToMarkdown(
+    view: EditorView,
+    data: TableData,
+    tableEl: HTMLTableElement,
+): void {
+    const newHeaders: string[] = [];
+    tableEl.querySelectorAll<HTMLElement>('th.idz-table-th').forEach((th) => {
+        newHeaders.push(th.textContent?.trim() ?? '');
+    });
+
+    const newRows: string[][] = [];
+    tableEl.querySelectorAll<HTMLElement>('tbody tr:not(.idz-table-ghost-row)').forEach((tr) => {
+        const cells: string[] = [];
+        tr.querySelectorAll<HTMLElement>('td.idz-table-td').forEach((td) => {
+            cells.push(td.textContent?.trim() ?? '');
+        });
+        if (cells.length > 0) newRows.push(cells);
+    });
+
+    if (newHeaders.length === 0) return;
+
+    const newMarkdown = buildTableMarkdown(newHeaders, newRows);
+    const oldMarkdown = view.state.doc.sliceString(data.nodeFrom, data.nodeTo);
+    if (newMarkdown === oldMarkdown) return;
+
+    view.dispatch({
+        changes: { from: data.nodeFrom, to: data.nodeTo, insert: newMarkdown },
+        userEvent: 'input',
+    });
+}
+
+// ── Cell helpers ───────────────────────────────────────────────────────────
+
+function selectAll(cell: HTMLElement): void {
+    const range = document.createRange();
+    range.selectNodeContents(cell);
+    const sel = window.getSelection();
+    sel?.removeAllRanges();
+    sel?.addRange(range);
+}
+
+function getAllEditableCells(tableEl: HTMLTableElement): HTMLElement[] {
+    return Array.from(tableEl.querySelectorAll<HTMLElement>('th.idz-table-th, td.idz-table-td'));
+}
+
+// ── Mutable refs (stored on wrapper DOM) ──────────────────────────────────
+
+interface TableRefs {
+    data: TableData;
+    widget: TableWidget;
+}
+
+// ── Widget ─────────────────────────────────────────────────────────────────
 
 class TableWidget extends WidgetType {
     constructor(private readonly data: TableData) { super(); }
 
     eq(other: TableWidget): boolean {
+        const d = this.data;
+        const o = other.data;
         return (
-            other.data.nodeFrom === this.data.nodeFrom &&
-            other.data.nodeTo === this.data.nodeTo &&
-            other.data.headers.join('|') === this.data.headers.join('|')
+            d.nodeFrom === o.nodeFrom &&
+            d.nodeTo === o.nodeTo &&
+            d.headers.join('\x00') === o.headers.join('\x00') &&
+            d.rows.length === o.rows.length &&
+            d.rows.every((r, i) => r.join('\x00') === o.rows[i]?.join('\x00'))
         );
+    }
+
+    /**
+     * Update the existing DOM without recreating it, preserving focus.
+     * Also refreshes the shared `refs` so all closures see current data/widget.
+     * Returns true  → DOM reused (same dimensions, only content updated).
+     * Returns false → CM6 calls toDOM() for a full rebuild (dimensions changed).
+     */
+    updateDOM(dom: HTMLElement, _view: EditorView): boolean {
+        const tableEl = dom.querySelector<HTMLTableElement>('table.idz-table');
+        if (!tableEl) return false;
+
+        // Keep refs current so all event-listener closures use fresh data
+        const refs = (dom as any).__tableRefs as TableRefs | undefined;
+        if (refs) {
+            refs.data = this.data;
+            refs.widget = this;
+        }
+
+        const ths = Array.from(tableEl.querySelectorAll<HTMLElement>('th.idz-table-th'));
+        const trs = Array.from(
+            tableEl.querySelectorAll<HTMLElement>('tbody tr:not(.idz-table-ghost-row)')
+        );
+
+        // If column or row count changed, fall back to full toDOM rebuild
+        if (ths.length !== this.data.headers.length || trs.length !== this.data.rows.length) {
+            return false;
+        }
+
+        const focused = document.activeElement;
+
+        ths.forEach((th, i) => {
+            if (th !== focused) th.textContent = this.data.headers[i] ?? '';
+        });
+
+        trs.forEach((tr, r) => {
+            const tds = Array.from(tr.querySelectorAll<HTMLElement>('td.idz-table-td'));
+            tds.forEach((td, c) => {
+                if (td !== focused) td.textContent = this.data.rows[r]?.[c] ?? '';
+            });
+        });
+
+        return true; // DOM preserved, focus unaffected
     }
 
     toDOM(view: EditorView): HTMLElement {
         const wrapper = document.createElement('div');
         wrapper.className = 'idz-table-wrapper';
 
-        const table = document.createElement('table');
-        table.className = 'idz-table';
+        // Mutable refs — updated by updateDOM so closures always see current state
+        const refs: TableRefs = { data: this.data, widget: this };
+        (wrapper as any).__tableRefs = refs;
 
-        // Header
+        const tableEl = document.createElement('table');
+        tableEl.className = 'idz-table';
+
+        const colCount = this.data.headers.length;
+
+        // ── Head ──────────────────────────────────────────────────────────
         const thead = document.createElement('thead');
-        const headerTr = document.createElement('tr');
-        headerTr.className = 'idz-table-header-row';
-        for (const h of this.data.headers) {
-            const th = document.createElement('th');
-            th.className = 'idz-table-th';
-            th.textContent = h;
-            th.addEventListener('click', () => this.enterEdit(view, 0));
-            headerTr.appendChild(th);
-        }
-        thead.appendChild(headerTr);
-        table.appendChild(thead);
+        const headTr = document.createElement('tr');
 
-        // Body
+        for (let c = 0; c < colCount; c++) {
+            headTr.appendChild(
+                this.makeCell('th', this.data.headers[c], -1, c, tableEl, view, refs)
+            );
+        }
+
+        // Ghost column header cell ("+")
+        const ghostColTh = document.createElement('th');
+        ghostColTh.className = 'idz-table-ghost-col-cell';
+        const addColBtn = document.createElement('button');
+        addColBtn.className = 'idz-table-add-btn';
+        addColBtn.type = 'button';
+        addColBtn.title = 'Add column';
+        addColBtn.textContent = '+';
+        addColBtn.addEventListener('mousedown', (e) => e.preventDefault());
+        addColBtn.addEventListener('click', () => refs.widget.addColumn(view));
+        ghostColTh.appendChild(addColBtn);
+        headTr.appendChild(ghostColTh);
+
+        thead.appendChild(headTr);
+        tableEl.appendChild(thead);
+
+        // ── Body ──────────────────────────────────────────────────────────
         const tbody = document.createElement('tbody');
-        let dataRowIndex = 0;
-        for (const row of this.data.rows) {
-            const tr = document.createElement('tr');
-            tr.className = 'idz-table-row';
-            const rowIdx = dataRowIndex;
-            for (const cell of row) {
-                const td = document.createElement('td');
-                td.className = 'idz-table-td';
-                td.textContent = cell;
-                td.addEventListener('click', () => this.enterEdit(view, rowIdx + 2));
-                tr.appendChild(td);
-            }
-            tbody.appendChild(tr);
-            dataRowIndex++;
-        }
-        table.appendChild(tbody);
 
-        wrapper.appendChild(table);
-        this.attachHoverHandles(wrapper, view);
+        for (let r = 0; r < this.data.rows.length; r++) {
+            const tr = document.createElement('tr');
+            for (let c = 0; c < colCount; c++) {
+                tr.appendChild(
+                    this.makeCell('td', this.data.rows[r][c] ?? '', r, c, tableEl, view, refs)
+                );
+            }
+            // Ghost column body cell
+            const ghostTd = document.createElement('td');
+            ghostTd.className = 'idz-table-ghost-col-cell';
+            tr.appendChild(ghostTd);
+            tbody.appendChild(tr);
+        }
+
+        // Ghost row ("+")
+        const ghostRowTr = document.createElement('tr');
+        ghostRowTr.className = 'idz-table-ghost-row';
+        const ghostRowTd = document.createElement('td');
+        ghostRowTd.colSpan = colCount + 1;
+        const addRowBtn = document.createElement('button');
+        addRowBtn.className = 'idz-table-add-btn idz-table-add-btn--row';
+        addRowBtn.type = 'button';
+        addRowBtn.title = 'Add row';
+        addRowBtn.textContent = '+';
+        addRowBtn.addEventListener('mousedown', (e) => e.preventDefault());
+        addRowBtn.addEventListener('click', () => refs.widget.addRow(view));
+        ghostRowTd.appendChild(addRowBtn);
+        ghostRowTr.appendChild(ghostRowTd);
+        tbody.appendChild(ghostRowTr);
+
+        tableEl.appendChild(tbody);
+        wrapper.appendChild(tableEl);
+
+        // ── Table-specific context menu ────────────────────────────────────
+        wrapper.addEventListener('contextmenu', (e) => {
+            e.preventDefault();
+            e.stopPropagation();
+            const targetCell = (e.target as Element).closest<HTMLElement>('[data-row-idx]');
+            if (!targetCell) return;
+            const rowIdx = parseInt(targetCell.dataset.rowIdx ?? '-1', 10);
+            const colIdx = parseInt(targetCell.dataset.colIdx ?? '0', 10);
+            showTableContextMenu(e.clientX, e.clientY, view, refs.data, rowIdx, colIdx);
+        });
 
         return wrapper;
     }
 
-    private enterEdit(view: EditorView, lineIdx: number): void {
-        const lines = this.data.allLines;
-        const target = lines[Math.min(lineIdx, lines.length - 1)];
-        const firstPipe = target.text.indexOf('|');
-        const pos = firstPipe >= 0 ? target.from + firstPipe + 2 : target.from;
-        view.dispatch({ selection: { anchor: Math.min(pos, target.to) } });
-        view.focus();
-    }
+    private makeCell(
+        tag: 'th' | 'td',
+        content: string,
+        rowIdx: number,   // -1 = header row, 0+ = data rows
+        colIdx: number,
+        tableEl: HTMLTableElement,
+        view: EditorView,
+        refs: TableRefs,
+    ): HTMLElement {
+        const cell = document.createElement(tag);
+        cell.className = tag === 'th' ? 'idz-table-th' : 'idz-table-td';
+        cell.contentEditable = 'true';
+        cell.spellcheck = false;
+        cell.textContent = content;
+        cell.dataset.rowIdx = String(rowIdx);
+        cell.dataset.colIdx = String(colIdx);
 
-    private attachHoverHandles(wrapper: HTMLElement, view: EditorView): void {
-        const ghostCol = document.createElement('div');
-        ghostCol.className = 'idz-table-ghost-col';
-        ghostCol.setAttribute('aria-hidden', 'true');
-        const addColBtn = document.createElement('button');
-        addColBtn.className = 'idz-table-add-btn';
-        addColBtn.textContent = '+';
-        addColBtn.title = 'Add column';
-        addColBtn.addEventListener('click', (e) => {
-            e.stopPropagation();
-            this.addColumn(view);
-        });
-        ghostCol.appendChild(addColBtn);
-        wrapper.appendChild(ghostCol);
-
-        const ghostRow = document.createElement('div');
-        ghostRow.className = 'idz-table-ghost-row';
-        ghostRow.setAttribute('aria-hidden', 'true');
-        const addRowBtn = document.createElement('button');
-        addRowBtn.className = 'idz-table-add-btn';
-        addRowBtn.textContent = '+';
-        addRowBtn.title = 'Add row';
-        addRowBtn.addEventListener('click', (e) => {
-            e.stopPropagation();
-            this.addRow(view);
-        });
-        ghostRow.appendChild(addRowBtn);
-        wrapper.appendChild(ghostRow);
-
-        wrapper.addEventListener('mouseenter', () => {
-            ghostCol.classList.add('idz-table-ghost--visible');
-            ghostRow.classList.add('idz-table-ghost--visible');
-        });
-        wrapper.addEventListener('mouseleave', () => {
-            ghostCol.classList.remove('idz-table-ghost--visible');
-            ghostRow.classList.remove('idz-table-ghost--visible');
-        });
-    }
-
-    private addColumn(view: EditorView): void {
-        const changes: Array<{ from: number; to: number; insert: string }> = [];
-        for (let i = 0; i < this.data.allLines.length; i++) {
-            const line = this.data.allLines[i];
-            if (!line.text.trim()) continue;
-            const lastPipeIdx = line.text.lastIndexOf('|');
-            if (lastPipeIdx < 0) continue;
-            const insertPos = line.from + lastPipeIdx;
-            if (isSeparatorLine(line.text)) {
-                changes.push({ from: insertPos, to: insertPos, insert: '|---' });
-            } else if (i === 0) {
-                changes.push({ from: insertPos, to: insertPos, insert: '| New Column ' });
-            } else {
-                changes.push({ from: insertPos, to: insertPos, insert: '|  ' });
+        cell.addEventListener('keydown', (e) => {
+            if (e.key === 'Tab') {
+                e.preventDefault();
+                const all = getAllEditableCells(tableEl);
+                const idx = all.indexOf(cell);
+                const next = e.shiftKey ? all[idx - 1] : all[idx + 1];
+                if (next) {
+                    next.focus();
+                    selectAll(next);
+                } else {
+                    cell.blur();
+                }
             }
-        }
-        if (changes.length) {
-            view.dispatch({ changes, userEvent: 'input' });
-            view.focus();
-        }
-    }
-
-    private addRow(view: EditorView): void {
-        const lastLine = this.data.allLines[this.data.allLines.length - 1];
-        const cells = this.data.headers.map(() => '  ').join(' | ');
-        const newRow = `\n| ${cells} |`;
-        view.dispatch({
-            changes: { from: lastLine.to, insert: newRow },
-            selection: { anchor: lastLine.to + 3 },
-            userEvent: 'input',
+            if (e.key === 'Enter' || e.key === 'Escape') {
+                e.preventDefault();
+                cell.blur();
+            }
         });
-        view.focus();
+
+        // Prevent CM6 from stealing mouse events that belong to the cell
+        cell.addEventListener('mousedown', (e) => e.stopPropagation());
+
+        // On blur: sync cell content back to markdown using CURRENT refs.data
+        cell.addEventListener('blur', () => {
+            syncTableToMarkdown(view, refs.data, tableEl);
+        });
+
+        return cell;
     }
 
-    ignoreEvent(): boolean { return false; }
+    /** Add an empty row at the bottom of the table. */
+    addRow(view: EditorView): void {
+        const emptyRow = this.data.headers.map(() => '');
+        rebuildTable(view, this.data, this.data.headers, [...this.data.rows, emptyRow]);
+    }
+
+    /** Add an empty column at the right of the table. */
+    addColumn(view: EditorView): void {
+        const newHeaders = [...this.data.headers, 'New Column'];
+        const newRows = this.data.rows.map((row) => [...row, '']);
+        rebuildTable(view, this.data, newHeaders, newRows);
+    }
+
+    ignoreEvent(event: Event): boolean {
+        const t = event.target;
+        if (!(t instanceof Element)) return false;
+        // Let CM6 ignore events originating from inside contenteditable cells
+        return t.closest('[contenteditable="true"]') !== null;
+    }
+
     get estimatedHeight(): number { return -1; }
 }
 
-// ── Build decorations (takes EditorState, not EditorView) ──────────────────
-//
-// Block decorations MUST be produced by a StateField — ViewPlugin is
-// only allowed to yield non-block (mark / inline-replace / line) decorations.
+// ── StateField ─────────────────────────────────────────────────────────────
+// Block decorations MUST live in a StateField (ViewPlugin does not allow them).
+// Tables are ALWAYS replaced by a widget regardless of cursor position.
+// Selection changes do NOT trigger a rebuild — tables are cursor-independent.
 
 function buildTableDecorations(state: EditorState): DecorationSet {
     const decorations: Range<Decoration>[] = [];
@@ -222,43 +335,14 @@ function buildTableDecorations(state: EditorState): DecorationSet {
         to: state.doc.length,
         enter(node) {
             if (node.name !== 'Table') return;
-
             const data = parseTable(state, node.from, node.to);
             if (!data) return false;
-
-            const cursorInTable = isCursorInNodeLines(state, node.from, node.to);
-
-            if (!cursorInTable) {
-                // Block replacement — legal here because we're in a StateField
-                decorations.push(
-                    Decoration.replace({
-                        widget: new TableWidget(data),
-                        block: true,
-                    }).range(node.from, node.to)
-                );
-            } else {
-                // Line-level decorations for editing mode (no block flag needed)
-                for (let i = 0; i < data.allLines.length; i++) {
-                    const line = data.allLines[i];
-                    if (isSeparatorLine(line.text)) {
-                        decorations.push(
-                            Decoration.line({ class: 'idz-table-sep-line' })
-                                .range(line.from, line.from)
-                        );
-                    } else if (i === 0) {
-                        decorations.push(
-                            Decoration.line({ class: 'idz-table-editing-header' })
-                                .range(line.from, line.from)
-                        );
-                    } else {
-                        decorations.push(
-                            Decoration.line({ class: 'idz-table-editing-row' })
-                                .range(line.from, line.from)
-                        );
-                    }
-                }
-            }
-
+            decorations.push(
+                Decoration.replace({
+                    widget: new TableWidget(data),
+                    block: true,
+                }).range(node.from, node.to)
+            );
             return false;
         },
     });
@@ -267,117 +351,23 @@ function buildTableDecorations(state: EditorState): DecorationSet {
     return Decoration.set(decorations, true);
 }
 
-// ── StateField ─────────────────────────────────────────────────────────────
-
 const tableDecorationsField = StateField.define<DecorationSet>({
     create(state) {
         return buildTableDecorations(state);
     },
     update(decos, tr) {
-        if (tr.docChanged || tr.selection) {
+        // Only rebuild when the document actually changed.
+        // Cursor/selection changes do not affect table rendering.
+        if (tr.docChanged) {
             return buildTableDecorations(tr.state);
         }
-        return decos.map(tr.changes);
+        return decos;
     },
     provide(field) {
         return EditorView.decorations.from(field);
     },
 });
 
-// ── Cell navigation (Tab / Shift+Tab) ──────────────────────────────────────
-
-function cellStartPositions(lineText: string, lineFrom: number): number[] {
-    const positions: number[] = [];
-    let i = 0;
-    while (i < lineText.length) {
-        if (lineText[i] === '|') {
-            i++;
-            while (i < lineText.length && lineText[i] === ' ') i++;
-            if (i < lineText.length && lineText[i] !== '|') {
-                positions.push(lineFrom + i);
-            }
-        } else {
-            i++;
-        }
-    }
-    return positions;
-}
-
-function getTableRangeAt(state: EditorState, pos: number): { from: number; to: number } | null {
-    let result: { from: number; to: number } | null = null;
-    syntaxTree(state).iterate({
-        from: Math.max(0, pos - 1),
-        to: Math.min(state.doc.length, pos + 1),
-        enter(node) {
-            if (node.name === 'Table') {
-                result = { from: node.from, to: node.to };
-                return false;
-            }
-        },
-    });
-    return result;
-}
-
-function tabInTable(view: EditorView, backward: boolean): boolean {
-    const state = view.state;
-    const head = state.selection.main.head;
-    const currentLine = state.doc.lineAt(head);
-
-    if (!currentLine.text.includes('|')) return false;
-
-    const tableNode = getTableRangeAt(state, head);
-    if (!tableNode) return false;
-
-    const cells = cellStartPositions(currentLine.text, currentLine.from);
-    if (cells.length === 0) return false;
-
-    const currentCell = cells.filter((p) => p <= head).length - 1;
-
-    if (!backward) {
-        if (currentCell < cells.length - 1) {
-            view.dispatch({ selection: { anchor: cells[currentCell + 1] } });
-            return true;
-        }
-        if (currentLine.number < state.doc.lines) {
-            let nextLine = state.doc.line(currentLine.number + 1);
-            if (isSeparatorLine(nextLine.text) && currentLine.number + 1 < state.doc.lines) {
-                nextLine = state.doc.line(currentLine.number + 2);
-            }
-            if (nextLine.from <= tableNode.to) {
-                const nextCells = cellStartPositions(nextLine.text, nextLine.from);
-                if (nextCells.length > 0) {
-                    view.dispatch({ selection: { anchor: nextCells[0] } });
-                    return true;
-                }
-            }
-        }
-    } else {
-        if (currentCell > 0) {
-            view.dispatch({ selection: { anchor: cells[currentCell - 1] } });
-            return true;
-        }
-        if (currentLine.number > 1) {
-            let prevLine = state.doc.line(currentLine.number - 1);
-            if (isSeparatorLine(prevLine.text) && currentLine.number > 2) {
-                prevLine = state.doc.line(currentLine.number - 2);
-            }
-            if (prevLine.from >= tableNode.from) {
-                const prevCells = cellStartPositions(prevLine.text, prevLine.from);
-                if (prevCells.length > 0) {
-                    view.dispatch({ selection: { anchor: prevCells[prevCells.length - 1] } });
-                    return true;
-                }
-            }
-        }
-    }
-    return false;
-}
-
-const tableKeymap = keymap.of([
-    { key: 'Tab', run(view) { return tabInTable(view, false); } },
-    { key: 'Shift-Tab', run(view) { return tabInTable(view, true); } },
-]);
-
 export function tablesExtension() {
-    return [tableDecorationsField, tableKeymap];
+    return [tableDecorationsField];
 }

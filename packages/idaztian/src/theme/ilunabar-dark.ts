@@ -507,10 +507,9 @@ export const ilunabarDarkTheme = EditorView.theme(
             backgroundColor: 'rgba(127, 109, 242, 0.6)',
         },
 
-        // ── Tables (rendered widget) ─────────────────────────────────────────
+        // ── Tables (always-rendered widget) ─────────────────────────────────
         '.idz-table-wrapper': {
-            position: 'relative',
-            display: 'inline-block',
+            display: 'block',
             maxWidth: '100%',
             margin: '0.75em 0',
             overflowX: 'auto',
@@ -518,61 +517,79 @@ export const ilunabarDarkTheme = EditorView.theme(
         '.idz-table': {
             borderCollapse: 'collapse',
             fontSize: '0.95em',
-            lineHeight: '1.5',
+            lineHeight: '1.6',
             width: 'auto',
             minWidth: '200px',
         },
-        '.idz-table th, .idz-table td': {
+
+        // ── Regular header / data cells ──────────────────────────────────────
+        '.idz-table-th, .idz-table-td': {
             border: `1px solid ${colors.border}`,
             padding: '6px 14px',
             textAlign: 'left',
             verticalAlign: 'top',
-            cursor: 'pointer',
-            transition: 'background 0.1s ease',
             minWidth: '80px',
+            outline: 'none',
+            whiteSpace: 'pre-wrap',
+            wordBreak: 'break-word',
         },
-        '.idz-table th': {
+        '.idz-table-th': {
             backgroundColor: 'rgba(127, 109, 242, 0.12)',
             color: colors.heading,
             fontWeight: '600',
             borderBottomColor: colors.accent,
+            cursor: 'text',
         },
-        '.idz-table tbody tr:hover td': {
-            backgroundColor: 'rgba(255,255,255,0.04)',
+        '.idz-table-td': {
+            cursor: 'text',
+        },
+        '.idz-table-th:focus, .idz-table-td:focus': {
+            backgroundColor: 'rgba(127, 109, 242, 0.08)',
+            boxShadow: `inset 0 0 0 2px ${colors.accent}`,
+            outline: 'none',
+        },
+        '.idz-table tbody tr:not(.idz-table-ghost-row):hover td.idz-table-td': {
+            backgroundColor: 'rgba(255,255,255,0.03)',
         },
 
-        // ── Table hover handles ──────────────────────────────────────────────
-        '.idz-table-ghost-col': {
-            position: 'absolute',
-            top: '0',
-            right: '-32px',
+        // ── Ghost column (last column in table, hidden until hover) ──────────
+        '.idz-table-ghost-col-cell': {
+            border: 'none',
+            padding: '0',
             width: '28px',
-            height: '100%',
-            display: 'flex',
-            flexDirection: 'column',
-            alignItems: 'center',
-            justifyContent: 'center',
+            minWidth: '28px',
+            maxWidth: '28px',
+            textAlign: 'center',
+            verticalAlign: 'middle',
             opacity: '0',
             transition: 'opacity 0.15s ease',
             pointerEvents: 'none',
+            backgroundColor: 'transparent',
         },
-        '.idz-table-ghost-row': {
-            position: 'absolute',
-            bottom: '-28px',
-            left: '0',
-            width: '100%',
-            height: '24px',
-            display: 'flex',
-            alignItems: 'center',
-            justifyContent: 'center',
-            opacity: '0',
-            transition: 'opacity 0.15s ease',
-            pointerEvents: 'none',
-        },
-        '.idz-table-ghost--visible': {
+        '.idz-table:hover .idz-table-ghost-col-cell': {
             opacity: '1',
             pointerEvents: 'auto',
         },
+
+        // ── Ghost row (last row in tbody, hidden until hover) ────────────────
+        '.idz-table-ghost-row': {
+            height: '24px',
+        },
+        '.idz-table-ghost-row td': {
+            border: 'none',
+            padding: '2px 0',
+            textAlign: 'center',
+            opacity: '0',
+            transition: 'opacity 0.15s ease',
+            pointerEvents: 'none',
+            backgroundColor: 'transparent',
+        },
+        '.idz-table:hover .idz-table-ghost-row td': {
+            opacity: '1',
+            pointerEvents: 'auto',
+        },
+
+        // ── Add column / row buttons ─────────────────────────────────────────
         '.idz-table-add-btn': {
             width: '22px',
             height: '22px',
@@ -580,39 +597,25 @@ export const ilunabarDarkTheme = EditorView.theme(
             border: `1px dashed ${colors.accent}`,
             background: colors.bg,
             color: colors.accent,
-            fontSize: '16px',
+            fontSize: '15px',
             lineHeight: '1',
             cursor: 'pointer',
-            display: 'flex',
+            display: 'inline-flex',
             alignItems: 'center',
             justifyContent: 'center',
             padding: '0',
             transition: 'background 0.1s ease, color 0.1s ease',
+            verticalAlign: 'middle',
         },
         '.idz-table-add-btn:hover': {
             background: colors.accent,
             color: '#fff',
         },
-
-        // ── Table editing mode (cursor inside) ────────────────────────────────
-        '.idz-table-editing-header': {
-            backgroundColor: 'rgba(127, 109, 242, 0.08)',
-            borderLeft: `3px solid ${colors.accent}`,
-            paddingLeft: '0.75em',
-            fontWeight: '600',
-        },
-        '.idz-table-editing-row': {
-            borderLeft: `3px solid ${colors.border}`,
-            paddingLeft: '0.75em',
-        },
-        '.idz-table-sep-line': {
-            fontSize: '0',
-            lineHeight: '0',
-            overflow: 'hidden',
-            height: '2px',
-            padding: '0',
-            borderBottom: `2px solid ${colors.accent}`,
-            opacity: '0.4',
+        '.idz-table-add-btn--row': {
+            width: '100%',
+            borderRadius: '4px',
+            height: '18px',
+            fontSize: '13px',
         },
 
         // ── Toolbar ──────────────────────────────────────────────────────────
