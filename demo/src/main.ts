@@ -117,6 +117,24 @@ $$
 
 ---
 
+### Tables
+
+Tables are **always rendered** as styled HTML. Click any cell to enter editing mode, then **Tab** / **Shift+Tab** to navigate between cells. Hover the edges to reveal **+** buttons for adding rows and columns.
+
+| Feature | Phase | Status |
+|---|---|---|
+| Headings, bold, italic | Phase 1 | Done |
+| Links, images, code | Phase 1 | Done |
+| Alerts, footnotes, math | Phase 2A | Done |
+| Smart pairs, paste, drag & drop | Phase 2A | Done |
+| Tables | Phase 2B | Done |
+| Context menu | Phase 2B | Done |
+| Toolbar | Phase 2B | Done |
+
+Right-click anywhere in the editor to open the **context menu** with Format, Paragraph, and Insert submenus.
+
+---
+
 ## Keyboard Shortcuts
 
 | Shortcut | Action |
@@ -128,6 +146,8 @@ $$
 | Ctrl+S | Save/Download |
 | Ctrl+F | Find |
 | Ctrl+H | Find & Replace |
+| Tab (in table) | Move to next cell |
+| Shift+Tab (in table) | Move to previous cell |
 
 Click the **⌨** button in the header to see all shortcuts.
 
@@ -147,6 +167,8 @@ const storedContent = loadContent();
 const editor = new IdaztianEditor({
     parent: document.getElementById('editor')!,
     initialContent: storedContent ?? SAMPLE_CONTENT,
+    toolbar: true,
+    contextMenu: true,
     extensions: {
         math: true,
     },

@@ -5,7 +5,7 @@ import { languages } from '@codemirror/language-data';
 import { search } from '@codemirror/search';
 import { IdaztianConfig, DEFAULT_CONFIG } from './config';
 import { EventEmitter, IdaztianEventMap } from './events';
-import { buildExtensions } from './extensions';
+import { buildExtensions, buildUIExtensions } from './extensions';
 import { shortcutsExtension } from './extensions/shortcuts';
 import { selectionWrapExtension } from './extensions/selection-wrap';
 import { ilunabarDark } from './theme/ilunabar-dark';
@@ -102,6 +102,9 @@ export class IdaztianEditor {
 
             // Live-preview extensions
             ...buildExtensions(extConfig),
+
+            // Phase 2B: Context menu and toolbar
+            ...buildUIExtensions(cfg),
 
             // Selection wrap: typing format chars wraps selected text
             selectionWrapExtension(),

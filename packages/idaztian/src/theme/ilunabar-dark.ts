@@ -506,6 +506,170 @@ export const ilunabarDarkTheme = EditorView.theme(
         '.cm-searchMatch.cm-searchMatch-selected': {
             backgroundColor: 'rgba(127, 109, 242, 0.6)',
         },
+
+        // ── Tables (rendered widget) ─────────────────────────────────────────
+        '.idz-table-wrapper': {
+            position: 'relative',
+            display: 'inline-block',
+            maxWidth: '100%',
+            margin: '0.75em 0',
+            overflowX: 'auto',
+        },
+        '.idz-table': {
+            borderCollapse: 'collapse',
+            fontSize: '0.95em',
+            lineHeight: '1.5',
+            width: 'auto',
+            minWidth: '200px',
+        },
+        '.idz-table th, .idz-table td': {
+            border: `1px solid ${colors.border}`,
+            padding: '6px 14px',
+            textAlign: 'left',
+            verticalAlign: 'top',
+            cursor: 'pointer',
+            transition: 'background 0.1s ease',
+            minWidth: '80px',
+        },
+        '.idz-table th': {
+            backgroundColor: 'rgba(127, 109, 242, 0.12)',
+            color: colors.heading,
+            fontWeight: '600',
+            borderBottomColor: colors.accent,
+        },
+        '.idz-table tbody tr:hover td': {
+            backgroundColor: 'rgba(255,255,255,0.04)',
+        },
+
+        // ── Table hover handles ──────────────────────────────────────────────
+        '.idz-table-ghost-col': {
+            position: 'absolute',
+            top: '0',
+            right: '-32px',
+            width: '28px',
+            height: '100%',
+            display: 'flex',
+            flexDirection: 'column',
+            alignItems: 'center',
+            justifyContent: 'center',
+            opacity: '0',
+            transition: 'opacity 0.15s ease',
+            pointerEvents: 'none',
+        },
+        '.idz-table-ghost-row': {
+            position: 'absolute',
+            bottom: '-28px',
+            left: '0',
+            width: '100%',
+            height: '24px',
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            opacity: '0',
+            transition: 'opacity 0.15s ease',
+            pointerEvents: 'none',
+        },
+        '.idz-table-ghost--visible': {
+            opacity: '1',
+            pointerEvents: 'auto',
+        },
+        '.idz-table-add-btn': {
+            width: '22px',
+            height: '22px',
+            borderRadius: '50%',
+            border: `1px dashed ${colors.accent}`,
+            background: colors.bg,
+            color: colors.accent,
+            fontSize: '16px',
+            lineHeight: '1',
+            cursor: 'pointer',
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            padding: '0',
+            transition: 'background 0.1s ease, color 0.1s ease',
+        },
+        '.idz-table-add-btn:hover': {
+            background: colors.accent,
+            color: '#fff',
+        },
+
+        // ── Table editing mode (cursor inside) ────────────────────────────────
+        '.idz-table-editing-header': {
+            backgroundColor: 'rgba(127, 109, 242, 0.08)',
+            borderLeft: `3px solid ${colors.accent}`,
+            paddingLeft: '0.75em',
+            fontWeight: '600',
+        },
+        '.idz-table-editing-row': {
+            borderLeft: `3px solid ${colors.border}`,
+            paddingLeft: '0.75em',
+        },
+        '.idz-table-sep-line': {
+            fontSize: '0',
+            lineHeight: '0',
+            overflow: 'hidden',
+            height: '2px',
+            padding: '0',
+            borderBottom: `2px solid ${colors.accent}`,
+            opacity: '0.4',
+        },
+
+        // ── Toolbar ──────────────────────────────────────────────────────────
+        '.idz-toolbar': {
+            display: 'flex',
+            alignItems: 'center',
+            flexWrap: 'wrap',
+            gap: '2px',
+            padding: '6px 10px',
+            backgroundColor: colors.bgPanel,
+            borderBottom: `1px solid ${colors.border}`,
+        },
+        '.idz-toolbar-btn': {
+            display: 'inline-flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            width: '30px',
+            height: '28px',
+            padding: '0',
+            border: 'none',
+            borderRadius: '4px',
+            background: 'transparent',
+            color: colors.textMuted,
+            cursor: 'pointer',
+            transition: 'background 0.1s ease, color 0.1s ease',
+            flexShrink: '0',
+        },
+        '.idz-toolbar-btn:hover': {
+            background: 'rgba(255,255,255,0.08)',
+            color: colors.text,
+        },
+        '.idz-toolbar-btn:active': {
+            background: 'rgba(255,255,255,0.14)',
+        },
+        '.idz-toolbar-btn--active': {
+            background: `rgba(127, 109, 242, 0.2)`,
+            color: colors.accent,
+        },
+        '.idz-toolbar-btn--active:hover': {
+            background: `rgba(127, 109, 242, 0.3)`,
+            color: colors.accentHover,
+        },
+        '.idz-toolbar-sep': {
+            width: '1px',
+            height: '18px',
+            backgroundColor: colors.border,
+            margin: '0 4px',
+            flexShrink: '0',
+        },
+
+        // Note: context menu styles are injected globally by context-menu.ts
+        // (EditorView.theme() scopes to the editor container; the menu lives in document.body)
+
+        // ── CM6 panel wrapper (toolbar host) ─────────────────────────────────
+        '.cm-panels-top': {
+            borderBottom: 'none',
+        },
     },
     { dark: true }
 );

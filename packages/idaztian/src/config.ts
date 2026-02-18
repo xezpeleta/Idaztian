@@ -38,6 +38,12 @@ export interface IdaztianConfig {
     /** Show the toolbar (default: false) */
     toolbar?: boolean;
 
+    /**
+     * Toolbar items to display (in order). Use 'separator' for dividers.
+     * Defaults to all items if not specified.
+     */
+    toolbarItems?: string[];
+
     /** Show the context menu on right-click (default: true) */
     contextMenu?: boolean;
 
@@ -54,7 +60,7 @@ export interface IdaztianConfig {
     onSelectionChange?: (selection: { from: number; to: number; text: string }) => void;
 }
 
-export const DEFAULT_CONFIG: Required<Omit<IdaztianConfig, 'parent' | 'onChange' | 'onSave' | 'onSelectionChange'>> = {
+export const DEFAULT_CONFIG: Required<Omit<IdaztianConfig, 'parent' | 'onChange' | 'onSave' | 'onSelectionChange' | 'toolbarItems'>> = {
     initialContent: '',
     placeholder: 'Start writing...',
     readOnly: false,
