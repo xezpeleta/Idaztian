@@ -568,6 +568,10 @@ export const ilunabarDarkTheme = EditorView.theme(
             alignItems: 'stretch',
             justifyContent: 'center',
             padding: '0 4px',
+            // The ghost row at the bottom of the table adds 24px to the wrapper height.
+            // A bottom margin tells flex to exclude that space from the lane height,
+            // so the lane aligns exactly with the real table rows.
+            marginBottom: '24px',
             opacity: '0',
             transition: 'opacity 0.15s ease',
             pointerEvents: 'none',
