@@ -20,6 +20,14 @@ You can also use ~~strikethrough~~ text.
 
 Here is a [link to the Idaztian repository](https://github.com/xezpeleta/idaztian). Click on it to see the full syntax.
 
+Image with alt text (move cursor away to see it rendered):
+
+![A scenic mountain landscape](https://picsum.photos/seed/idaztian/800/400)
+
+Broken images show the alt text and an error indicator:
+
+![This image does not exist](https://example.com/nonexistent.png)
+
 ### Lists
 
 Bullet list:
@@ -87,6 +95,24 @@ Footnotes let you add references[^1] without cluttering the text[^2].
 [^1]: This is the first footnote definition.
 [^2]: And this is the second one.
 
+### Math (LaTeX)
+
+Inline math renders inside a sentence: the famous mass-energy equivalence $E = mc^2$ by Einstein.
+
+Another inline example: Euler's identity $e^{i\\pi} + 1 = 0$ is considered the most beautiful equation.
+
+Block math is centred on its own line:
+
+$$
+\\int_{-\\infty}^{\\infty} e^{-x^2}\\, dx = \\sqrt{\\pi}
+$$
+
+The quadratic formula:
+
+$$
+x = \\frac{-b \\pm \\sqrt{b^2 - 4ac}}{2a}
+$$
+
 ### Horizontal Rule
 
 ---
@@ -121,6 +147,9 @@ const storedContent = loadContent();
 const editor = new IdaztianEditor({
     parent: document.getElementById('editor')!,
     initialContent: storedContent ?? SAMPLE_CONTENT,
+    extensions: {
+        math: true,
+    },
     onChange(content) {
         updateStats(content);
         saveContent(content);
