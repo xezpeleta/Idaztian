@@ -35,6 +35,97 @@ function makeTaskListCommand(
     return setLinePrefix(view.state, view.dispatch, '- [ ] ', [/^[-*+](\s\[[ xX]\])?\s/, /^\d+\.\s/]);
 }
 
+/**
+ * On Enter, continue the current list item:
+ * - Bullet list  → insert `\n<indent>- ` (or `* ` / `+ ` matching the original)
+ * - Ordered list → insert `\n<indent><n+1>. `
+ * - Task list   → insert `\n<indent>- [ ] `
+ * - Empty marker → remove the marker and exit the list
+ * Returns false when not on a list line, letting defaultKeymap handle it.
+ */
+function continueListCommand(
+    view: { state: EditorState; dispatch: (tr: Transaction) => void }
+): boolean {
+    const state = view.state;
+    const { head } = state.selection.main;
+    const line = state.doc.lineAt(head);
+    const text = line.text;
+
+    // Task list: - [ ] text
+    const taskMatch = text.match(/^(\s*)([-*+])\s+\[([ xX])\]\s?(.*)$/);
+    if (taskMatch) {
+        const indent = taskMatch[1];
+        const marker = taskMatch[2];
+        const content = taskMatch[4];
+        // Empty task item → exit list
+        if (!content.trim()) {
+            view.dispatch(state.update({
+                changes: { from: line.from, to: line.to, insert: '' },
+                selection: { anchor: line.from },
+                userEvent: 'input',
+            }));
+            return true;
+        }
+        const insert = `\n${indent}${marker} [ ] `;
+        view.dispatch(state.update({
+            changes: { from: head, to: head, insert },
+            selection: { anchor: head + insert.length },
+            userEvent: 'input',
+        }));
+        return true;
+    }
+
+    // Bullet list: - text, * text, + text
+    const bulletMatch = text.match(/^(\s*)([-*+])\s(.*)$/);
+    if (bulletMatch) {
+        const indent = bulletMatch[1];
+        const marker = bulletMatch[2];
+        const content = bulletMatch[3];
+        // Empty bullet → exit list
+        if (!content.trim()) {
+            view.dispatch(state.update({
+                changes: { from: line.from, to: line.to, insert: '' },
+                selection: { anchor: line.from },
+                userEvent: 'input',
+            }));
+            return true;
+        }
+        const insert = `\n${indent}${marker} `;
+        view.dispatch(state.update({
+            changes: { from: head, to: head, insert },
+            selection: { anchor: head + insert.length },
+            userEvent: 'input',
+        }));
+        return true;
+    }
+
+    // Ordered list: 1. text
+    const orderedMatch = text.match(/^(\s*)(\d+)\.\s(.*)$/);
+    if (orderedMatch) {
+        const indent = orderedMatch[1];
+        const num = parseInt(orderedMatch[2], 10);
+        const content = orderedMatch[3];
+        // Empty ordered item → exit list
+        if (!content.trim()) {
+            view.dispatch(state.update({
+                changes: { from: line.from, to: line.to, insert: '' },
+                selection: { anchor: line.from },
+                userEvent: 'input',
+            }));
+            return true;
+        }
+        const insert = `\n${indent}${num + 1}. `;
+        view.dispatch(state.update({
+            changes: { from: head, to: head, insert },
+            selection: { anchor: head + insert.length },
+            userEvent: 'input',
+        }));
+        return true;
+    }
+
+    return false;
+}
+
 export function shortcutsExtension(onSave?: (content: string) => void) {
     return [
         history(),
@@ -106,6 +197,8 @@ export function shortcutsExtension(onSave?: (content: string) => void) {
             },
             // Tab for indentation
             indentWithTab,
+            // Enter: continue list items (bullet, ordered, task)
+            { key: 'Enter', run: continueListCommand },
             ...defaultKeymap,
             ...historyKeymap,
             ...searchKeymap,
