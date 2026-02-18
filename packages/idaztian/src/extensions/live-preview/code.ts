@@ -57,27 +57,40 @@ function buildCodeDecorations(view: EditorView): DecorationSet {
                     return false;
                 }
 
-                // ── Fenced code block: ```lang\n...\n``` ─────────────────────────
+                // ── Fenced code block: ```lang\n...\\n``` ─────────────────────────
                 if (node.name === 'FencedCode') {
+                    const openLine = state.doc.lineAt(node.from);
+                    const openLineNum = openLine.number;
+
+                    // Detect whether the block is closed: the last line of the node
+                    // must contain a fence marker (``` or ~~~). If not, the parser
+                    // has extended the node to the end of the document because the
+                    // closing fence hasn't been typed yet.
+                    const closeLineRaw = state.doc.lineAt(node.to);
+                    const closeLineText = closeLineRaw.text.trim();
+                    const isClosed = /^(`{3,}|~{3,})\s*$/.test(closeLineText);
+
+                    // For unclosed blocks, only render lines up to the cursor so
+                    // that content below the cursor is not affected while typing.
+                    const cursorLine = state.doc.lineAt(state.selection.main.head).number;
+                    const effectiveCloseLineNum = isClosed
+                        ? closeLineRaw.number
+                        : cursorLine;
                     const cursorOnBlock = isCursorInNodeLines(state, node.from, node.to);
 
-                    const openLine = state.doc.lineAt(node.from);
-                    const closeLine = state.doc.lineAt(node.to);
-                    const openLineNum = openLine.number;
-                    const closeLineNum = closeLine.number;
-                    const totalLines = closeLineNum - openLineNum + 1;
-
-                    // Apply a Decoration.line() to every line in the block.
+                    // Apply a Decoration.line() to every line in the (effective) block.
                     // This avoids the multi-line mark box-per-line problem.
-                    for (let lineNum = openLineNum; lineNum <= closeLineNum; lineNum++) {
+                    for (let lineNum = openLineNum; lineNum <= effectiveCloseLineNum; lineNum++) {
                         const line = state.doc.line(lineNum);
 
                         // Skip lines outside the visible range
                         if (line.to < from || line.from > to) continue;
 
-                        const isFenceLine = lineNum === openLineNum || lineNum === closeLineNum;
+                        // For unclosed blocks the "close fence" line doesn't exist yet,
+                        // so only the open line is a fence line.
+                        const isFenceLine = lineNum === openLineNum || (isClosed && lineNum === effectiveCloseLineNum);
                         const isFirst = lineNum === openLineNum;
-                        const isOnly = totalLines === 1;
+                        const isOnly = effectiveCloseLineNum === openLineNum;
 
                         if (isFenceLine) {
                             if (!cursorOnBlock) {
@@ -100,7 +113,7 @@ function buildCodeDecorations(view: EditorView): DecorationSet {
                             if (!cursorOnBlock) {
                                 // When fence is hidden, first content line is visually first
                                 const isFirstContent = lineNum === openLineNum + 1;
-                                const isLastContent = lineNum === closeLineNum - 1;
+                                const isLastContent = lineNum === effectiveCloseLineNum - (isClosed ? 1 : 0);
                                 if (isFirstContent && isLastContent) lineClass += ' idz-code-first idz-code-last';
                                 else if (isFirstContent) lineClass += ' idz-code-first';
                                 else if (isLastContent) lineClass += ' idz-code-last';
