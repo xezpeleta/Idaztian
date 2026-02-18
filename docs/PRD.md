@@ -714,14 +714,15 @@ import { IdaztianEditor } from 'idaztian';
 
 ## 14. Roadmap
 
-### Phase 1 — Foundation (v0.1)
+### Phase 1 — Foundation (v0.1) ✅
 
-- [ ] Project scaffolding (monorepo, build, TypeScript)
-- [ ] CodeMirror 6 integration with `@lezer/markdown`
-- [ ] Core live-preview extensions: headings, emphasis, links, lists, code
-- [ ] Obsidian dark theme
-- [ ] Basic keyboard shortcuts
-- [ ] Demo app with open/download
+- [x] Project scaffolding (monorepo, build, TypeScript)
+- [x] CodeMirror 6 integration with `@lezer/markdown`
+- [x] Core live-preview extensions: headings, emphasis, links, lists, code, blockquotes, horizontal rules
+- [x] Obsidian dark theme (Ilunabar Dark)
+- [x] Basic keyboard shortcuts (bold, italic, code, link, headings, lists)
+- [x] Selection wrap: typing format chars wraps selected text
+- [x] Demo app with open/download
 
 ### Phase 2 — Full Spec (v0.5)
 
