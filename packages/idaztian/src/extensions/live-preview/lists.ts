@@ -1,16 +1,18 @@
 import { Range } from '@codemirror/state';
 import { Decoration, DecorationSet, EditorView, ViewPlugin, ViewUpdate, WidgetType } from '@codemirror/view';
 import { syntaxTree } from '@codemirror/language';
-import { isCursorInNodeLines } from '../../utils/cursor';
 
 /**
  * Live-preview extension for bullet and ordered lists.
  *
  * Behavior:
- * - Bullet lists: replace `-`/`*`/`+` marker with a rendered bullet dot when cursor is away
- * - Ordered lists: style the `1.` marker when cursor is away
- * - Task lists: render `[ ]` / `[x]` as checkboxes
- * - Cursor on the list item line: show raw marker
+ * - Bullet lists: replace `-`/`*`/`+` marker with a rendered bullet dot,
+ *   UNLESS the cursor is adjacent to (within) the marker characters themselves.
+ * - Ordered lists: style the `1.` marker; show raw when cursor is on it.
+ * - Task lists: render `[ ]` / `[x]` as checkboxes.
+ *
+ * "Adjacent to marker" means the cursor head is within [markerFrom, markerTo].
+ * Moving anywhere else on the line keeps the bullet rendered.
  */
 
 class BulletWidget extends WidgetType {
@@ -41,6 +43,16 @@ class CheckboxWidget extends WidgetType {
     ignoreEvent(): boolean { return false; }
 }
 
+/**
+ * Returns true if the cursor head is within [markerFrom, markerTo] (inclusive).
+ * This is the "adjacent to marker" check — only reveal raw syntax when the
+ * cursor is actually on the marker characters, not just anywhere on the line.
+ */
+function isCursorOnMarker(view: EditorView, markerFrom: number, markerTo: number): boolean {
+    const head = view.state.selection.main.head;
+    return head >= markerFrom && head <= markerTo;
+}
+
 function buildListDecorations(view: EditorView): DecorationSet {
     const decorations: Range<Decoration>[] = [];
     const state = view.state;
@@ -54,7 +66,6 @@ function buildListDecorations(view: EditorView): DecorationSet {
                 if (node.name === 'ListItem') {
                     const line = state.doc.lineAt(node.from);
                     const lineText = line.text;
-                    const cursorAway = !isCursorInNodeLines(state, node.from, node.from);
 
                     // Task list: - [ ] or - [x]
                     const taskMatch = lineText.match(/^(\s*[-*+]\s+)\[([ xX])\]\s/);
@@ -63,8 +74,9 @@ function buildListDecorations(view: EditorView): DecorationSet {
                         const checkboxStart = line.from + taskMatch[1].length;
                         const checkboxEnd = checkboxStart + 3; // `[ ]` or `[x]`
                         const checked = taskMatch[2].toLowerCase() === 'x';
+                        const cursorOnMarker = isCursorOnMarker(view, markerStart, checkboxEnd);
 
-                        if (cursorAway) {
+                        if (!cursorOnMarker) {
                             // Hide the bullet marker
                             decorations.push(
                                 Decoration.replace({ widget: new BulletWidget() }).range(markerStart, checkboxStart)
@@ -82,9 +94,10 @@ function buildListDecorations(view: EditorView): DecorationSet {
                     if (bulletMatch) {
                         const indent = bulletMatch[1].length;
                         const markerFrom = line.from + indent;
-                        const markerTo = markerFrom + 1 + bulletMatch[3].length; // marker + space
+                        const markerTo = markerFrom + 1 + bulletMatch[3].length; // marker char + space
+                        const cursorOnMarker = isCursorOnMarker(view, markerFrom, markerTo);
 
-                        if (cursorAway) {
+                        if (!cursorOnMarker) {
                             decorations.push(
                                 Decoration.replace({ widget: new BulletWidget() }).range(markerFrom, markerTo)
                             );
@@ -102,8 +115,9 @@ function buildListDecorations(view: EditorView): DecorationSet {
                         const indent = orderedMatch[1].length;
                         const markerFrom = line.from + indent;
                         const markerTo = markerFrom + orderedMatch[2].length + orderedMatch[3].length;
+                        const cursorOnMarker = isCursorOnMarker(view, markerFrom, markerTo);
 
-                        if (cursorAway) {
+                        if (!cursorOnMarker) {
                             decorations.push(
                                 Decoration.mark({ class: 'idz-ordered-marker' }).range(markerFrom, markerTo)
                             );
