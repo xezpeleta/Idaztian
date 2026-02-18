@@ -1,4 +1,4 @@
-import { Range } from '@codemirror/state';
+import { Range, StateField } from '@codemirror/state';
 import { Decoration, DecorationSet, EditorView, ViewPlugin, ViewUpdate, WidgetType } from '@codemirror/view';
 import { isCursorInRange } from '../../utils/cursor';
 
@@ -14,6 +14,11 @@ import { isCursorInRange } from '../../utils/cursor';
  *
  * KaTeX is lazy-loaded on first use to keep the initial bundle small.
  * This extension is disabled by default (config.extensions.math = false).
+ *
+ * Architecture note:
+ * Block decorations (block: true) may NOT come from a ViewPlugin — CodeMirror
+ * enforces this at runtime.  Block math therefore uses a StateField, while
+ * inline math uses a ViewPlugin (which benefits from the visible-range filter).
  */
 
 // Lazy KaTeX loader — resolves once and caches
@@ -83,17 +88,29 @@ class MathWidget extends WidgetType {
 }
 
 // Regex patterns for math delimiters
-// Block math: $$...$$ (greedy, multiline)
+// Block math: $$...$$ (non-greedy, multiline)
 const BLOCK_MATH_RE = /\$\$([\s\S]+?)\$\$/g;
 // Inline math: $...$ (non-greedy, single line, not preceded/followed by $)
 const INLINE_MATH_RE = /(?<!\$)\$(?!\$)((?:[^$\n]|\\.)+?)\$(?!\$)/g;
 
-function buildMathDecorations(view: EditorView): DecorationSet {
+/** Returns all block-math ranges in the document (used by both field and plugin). */
+function getBlockRanges(text: string): Array<{ from: number; to: number }> {
+    const ranges: Array<{ from: number; to: number }> = [];
+    BLOCK_MATH_RE.lastIndex = 0;
+    let m: RegExpExecArray | null;
+    while ((m = BLOCK_MATH_RE.exec(text)) !== null) {
+        ranges.push({ from: m.index, to: m.index + m[0].length });
+    }
+    return ranges;
+}
+
+// ── Block math: StateField ───────────────────────────────────────────────────
+// Block decorations (block: true) must come from a StateField, not a ViewPlugin.
+
+function buildBlockDecorations(state: EditorView['state']): DecorationSet {
     const decorations: Range<Decoration>[] = [];
-    const state = view.state;
     const text = state.doc.toString();
 
-    // ── Block math: $$...$$ ──────────────────────────────────────────────────
     BLOCK_MATH_RE.lastIndex = 0;
     let match: RegExpExecArray | null;
 
@@ -102,16 +119,13 @@ function buildMathDecorations(view: EditorView): DecorationSet {
         const to = from + match[0].length;
         const latex = match[1].trim();
 
-        const inVisible = view.visibleRanges.some(r => from >= r.from && to <= r.to);
-        if (!inVisible) continue;
-
         const cursorOn = isCursorInRange(state, from, to);
 
         if (!cursorOn) {
             decorations.push(
                 Decoration.replace({
                     widget: new MathWidget(latex, true),
-                    block: false,
+                    block: true,
                 }).range(from, to)
             );
         } else {
@@ -121,13 +135,47 @@ function buildMathDecorations(view: EditorView): DecorationSet {
         }
     }
 
-    // ── Inline math: $...$ ───────────────────────────────────────────────────
+    return Decoration.set(decorations, true);
+}
+
+const blockMathField = StateField.define<DecorationSet>({
+    create(state) {
+        loadKatex(); // pre-warm
+        return buildBlockDecorations(state);
+    },
+    update(deco, tr) {
+        if (tr.docChanged || tr.selection) {
+            return buildBlockDecorations(tr.state);
+        }
+        return deco.map(tr.changes);
+    },
+    provide(field) {
+        return EditorView.decorations.from(field);
+    },
+});
+
+// ── Inline math: ViewPlugin ──────────────────────────────────────────────────
+// Inline replacements (no block: true) can safely live in a ViewPlugin,
+// which lets us limit work to the visible viewport.
+
+function buildInlineDecorations(view: EditorView): DecorationSet {
+    const decorations: Range<Decoration>[] = [];
+    const state = view.state;
+    const text = state.doc.toString();
+
+    // Collect block ranges so we can skip inline matches that overlap them
+    const blockRanges = getBlockRanges(text);
+
     INLINE_MATH_RE.lastIndex = 0;
+    let match: RegExpExecArray | null;
 
     while ((match = INLINE_MATH_RE.exec(text)) !== null) {
         const from = match.index;
         const to = from + match[0].length;
         const latex = match[1];
+
+        // Skip matches inside a block math region
+        if (blockRanges.some(r => from >= r.from && to <= r.to)) continue;
 
         const inVisible = view.visibleRanges.some(r => from >= r.from && to <= r.to);
         if (!inVisible) continue;
@@ -151,19 +199,17 @@ function buildMathDecorations(view: EditorView): DecorationSet {
     return Decoration.set(decorations, true);
 }
 
-const mathPlugin = ViewPlugin.fromClass(
+const inlineMathPlugin = ViewPlugin.fromClass(
     class {
         decorations: DecorationSet;
 
         constructor(view: EditorView) {
-            this.decorations = buildMathDecorations(view);
-            // Pre-load KaTeX in the background
-            loadKatex();
+            this.decorations = buildInlineDecorations(view);
         }
 
         update(update: ViewUpdate) {
             if (update.docChanged || update.selectionSet || update.viewportChanged) {
-                this.decorations = buildMathDecorations(update.view);
+                this.decorations = buildInlineDecorations(update.view);
             }
         }
     },
@@ -171,5 +217,5 @@ const mathPlugin = ViewPlugin.fromClass(
 );
 
 export function mathExtension() {
-    return [mathPlugin];
+    return [blockMathField, inlineMathPlugin];
 }
