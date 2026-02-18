@@ -1,0 +1,310 @@
+import { EditorView } from '@codemirror/view';
+import { HighlightStyle, syntaxHighlighting } from '@codemirror/language';
+import { tags as t } from '@lezer/highlight';
+
+/**
+ * Ilunabar Dark Theme — Obsidian-inspired dark theme for Idaztian.
+ * "Ilunabar" means "dark moon" in Basque.
+ */
+
+const colors = {
+    bg: '#1e1e1e',
+    bgPanel: '#181818',
+    bgCode: '#2b2b2b',
+    bgSelection: '#264f78',
+    bgActiveLine: '#2a2a2a',
+    text: '#dcddde',
+    textMuted: '#888',
+    textFaint: '#555',
+    accent: '#7f6df2',
+    accentHover: '#9d8ff5',
+    heading: '#e8e8e8',
+    link: '#7f6df2',
+    code: '#e06c75',
+    codeAlt: '#98c379',
+    string: '#98c379',
+    keyword: '#c678dd',
+    number: '#d19a66',
+    comment: '#5c6370',
+    cursor: '#aeafb0',
+    border: '#333',
+    hr: '#444',
+};
+
+export const ilunabarDarkTheme = EditorView.theme(
+    {
+        '&': {
+            color: colors.text,
+            backgroundColor: colors.bg,
+            fontSize: '16px',
+            fontFamily: "'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif",
+            height: '100%',
+        },
+        '.cm-content': {
+            caretColor: colors.cursor,
+            padding: '16px 0',
+            lineHeight: '1.7',
+            maxWidth: '860px',
+            margin: '0 auto',
+        },
+        '.cm-cursor, .cm-dropCursor': {
+            borderLeftColor: colors.cursor,
+            borderLeftWidth: '2px',
+        },
+        '&.cm-focused .cm-selectionBackground, .cm-selectionBackground, .cm-content ::selection': {
+            backgroundColor: colors.bgSelection,
+        },
+        '.cm-activeLine': {
+            backgroundColor: colors.bgActiveLine,
+        },
+        '.cm-activeLineGutter': {
+            backgroundColor: colors.bgActiveLine,
+        },
+        '.cm-gutters': {
+            backgroundColor: colors.bgPanel,
+            color: colors.textFaint,
+            border: 'none',
+            borderRight: `1px solid ${colors.border}`,
+        },
+        '.cm-lineNumbers .cm-gutterElement': {
+            padding: '0 8px',
+            minWidth: '32px',
+        },
+        '.cm-scroller': {
+            fontFamily: 'inherit',
+            overflowY: 'auto',
+        },
+        '.cm-placeholder': {
+            color: colors.textFaint,
+            fontStyle: 'italic',
+        },
+
+        // ── Heading styles ──────────────────────────────────────────────────
+        '.idz-h1': {
+            fontSize: '2em',
+            fontWeight: '700',
+            color: colors.heading,
+            lineHeight: '1.3',
+            borderBottom: `1px solid ${colors.border}`,
+            paddingBottom: '0.2em',
+            marginBottom: '0.5em',
+        },
+        '.idz-h2': {
+            fontSize: '1.6em',
+            fontWeight: '700',
+            color: colors.heading,
+            lineHeight: '1.35',
+        },
+        '.idz-h3': {
+            fontSize: '1.3em',
+            fontWeight: '600',
+            color: colors.heading,
+        },
+        '.idz-h4': {
+            fontSize: '1.1em',
+            fontWeight: '600',
+            color: colors.heading,
+        },
+        '.idz-h5': {
+            fontSize: '1em',
+            fontWeight: '600',
+            color: colors.textMuted,
+        },
+        '.idz-h6': {
+            fontSize: '0.9em',
+            fontWeight: '600',
+            color: colors.textMuted,
+        },
+        '.idz-heading-marker': {
+            color: colors.accent,
+            fontWeight: '700',
+        },
+
+        // ── Emphasis styles ─────────────────────────────────────────────────
+        '.idz-bold': {
+            fontWeight: '700',
+        },
+        '.idz-italic': {
+            fontStyle: 'italic',
+        },
+        '.idz-bold-italic': {
+            fontWeight: '700',
+            fontStyle: 'italic',
+        },
+        '.idz-strikethrough': {
+            textDecoration: 'line-through',
+            color: colors.textMuted,
+        },
+
+        // ── Marker (visible syntax tokens) ─────────────────────────────────
+        '.idz-marker': {
+            color: colors.textFaint,
+            opacity: '0.7',
+        },
+
+        // ── Links ───────────────────────────────────────────────────────────
+        '.idz-link': {
+            color: colors.link,
+            textDecoration: 'underline',
+            textDecorationColor: `${colors.link}66`,
+            cursor: 'pointer',
+        },
+        '.idz-link:hover': {
+            color: colors.accentHover,
+            textDecorationColor: colors.accentHover,
+        },
+        '.idz-link-syntax': {
+            color: colors.link,
+        },
+        '.idz-image-syntax': {
+            color: colors.textMuted,
+        },
+        '.idz-image': {
+            maxWidth: '100%',
+            height: 'auto',
+            borderRadius: '4px',
+            display: 'block',
+            margin: '0.5em 0',
+        },
+
+        // ── Code ────────────────────────────────────────────────────────────
+        '.idz-inline-code': {
+            fontFamily: "'JetBrains Mono', 'Fira Code', 'Cascadia Code', monospace",
+            fontSize: '0.9em',
+            color: colors.code,
+            backgroundColor: colors.bgCode,
+            padding: '0.1em 0.35em',
+            borderRadius: '3px',
+        },
+        // Per-line code block classes — stitched together to look like one block
+        '.idz-code-line': {
+            fontFamily: "'JetBrains Mono', 'Fira Code', 'Cascadia Code', monospace",
+            fontSize: '0.9em',
+            backgroundColor: colors.bgCode,
+            borderLeft: `3px solid ${colors.accent}`,
+            paddingLeft: '1em',
+            paddingRight: '1em',
+            display: 'block',
+        },
+        '.idz-code-first': {
+            borderTopLeftRadius: '6px',
+            borderTopRightRadius: '6px',
+            paddingTop: '0.75em',
+        },
+        '.idz-code-last': {
+            borderBottomLeftRadius: '6px',
+            borderBottomRightRadius: '6px',
+            paddingBottom: '0.75em',
+        },
+        '.idz-code-middle': {
+            // no extra rounding — seamlessly connects to adjacent lines
+        },
+        // Fence line hidden (cursor away) — collapse the line visually
+        '.idz-fence-hidden': {
+            fontSize: '0',
+            lineHeight: '0',
+            overflow: 'hidden',
+            padding: '0',
+            margin: '0',
+            opacity: '0',
+            height: '0',
+            display: 'block',
+        },
+        '.idz-fence-marker-line': {
+            fontFamily: "'JetBrains Mono', 'Fira Code', 'Cascadia Code', monospace",
+            fontSize: '0.9em',
+            backgroundColor: colors.bgCode,
+            borderLeft: `3px solid ${colors.accent}`,
+            paddingLeft: '1em',
+            color: colors.textFaint,
+            opacity: '0.7',
+        },
+
+        // ── Lists ───────────────────────────────────────────────────────────
+        '.idz-bullet': {
+            color: colors.accent,
+            fontWeight: '700',
+            marginRight: '0.5em',
+            userSelect: 'none',
+        },
+        '.idz-ordered-marker': {
+            color: colors.accent,
+            fontWeight: '600',
+        },
+        '.idz-checkbox': {
+            accentColor: colors.accent,
+            width: '14px',
+            height: '14px',
+            marginRight: '0.5em',
+            cursor: 'pointer',
+            verticalAlign: 'middle',
+        },
+
+        // ── Blockquotes ─────────────────────────────────────────────────────
+        '.idz-blockquote': {
+            borderLeft: `3px solid ${colors.accent}`,
+            paddingLeft: '1em',
+            color: colors.textMuted,
+            fontStyle: 'italic',
+            margin: '0.5em 0',
+        },
+        '.idz-blockquote-line': {
+            borderLeft: `3px solid ${colors.accent}`,
+            paddingLeft: '1em',
+            color: colors.textMuted,
+            fontStyle: 'italic',
+        },
+
+        // ── Horizontal rule ─────────────────────────────────────────────────
+        '.idz-hr': {
+            border: 'none',
+            borderTop: `1px solid ${colors.hr}`,
+            margin: '1.5em 0',
+        },
+        // When cursor is away, the line gets this class — we hide the text
+        // and show a visual rule via CSS
+        '.idz-hr-line': {
+            fontSize: '0',
+            lineHeight: '0.1em',
+            overflow: 'hidden',
+            borderTop: `1px solid ${colors.hr}`,
+            margin: '0.75em 0',
+            display: 'block',
+        },
+        '.idz-hr-syntax': {
+            color: colors.textFaint,
+        },
+    },
+    { dark: true }
+);
+
+export const ilunabarHighlightStyle = syntaxHighlighting(
+    HighlightStyle.define([
+        { tag: t.heading1, class: 'idz-h1' },
+        { tag: t.heading2, class: 'idz-h2' },
+        { tag: t.heading3, class: 'idz-h3' },
+        { tag: t.heading4, class: 'idz-h4' },
+        { tag: t.heading5, class: 'idz-h5' },
+        { tag: t.heading6, class: 'idz-h6' },
+        { tag: t.strong, fontWeight: 'bold' },
+        { tag: t.emphasis, fontStyle: 'italic' },
+        { tag: t.strikethrough, textDecoration: 'line-through' },
+        { tag: t.link, color: colors.link },
+        { tag: t.url, color: colors.link },
+        { tag: t.monospace, fontFamily: 'monospace', color: colors.code },
+        { tag: t.string, color: colors.string },
+        { tag: t.keyword, color: colors.keyword },
+        { tag: t.comment, color: colors.comment, fontStyle: 'italic' },
+        { tag: t.number, color: colors.number },
+        { tag: t.bool, color: colors.number },
+        { tag: t.null, color: colors.number },
+        { tag: t.operator, color: colors.text },
+        { tag: t.punctuation, color: colors.textMuted },
+        { tag: t.meta, color: colors.textFaint },
+        { tag: t.invalid, color: '#ff5555' },
+    ])
+);
+
+export function ilunabarDark() {
+    return [ilunabarDarkTheme, ilunabarHighlightStyle];
+}

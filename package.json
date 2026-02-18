@@ -1,0 +1,18 @@
+{
+  "name": "idaztian-workspace",
+  "private": true,
+  "workspaces": [
+    "packages/idaztian",
+    "demo"
+  ],
+  "scripts": {
+    "dev": "npm run dev --workspace=demo",
+    "build": "npm run build --workspace=packages/idaztian && npm run build --workspace=demo",
+    "build:lib": "npm run build --workspace=packages/idaztian",
+    "test": "npm run test --workspace=packages/idaztian",
+    "lint": "tsc --noEmit"
+  },
+  "devDependencies": {
+    "typescript": "^5.4.0"
+  }
+}

@@ -1,0 +1,85 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <meta name="description" content="Idaztian — Obsidian-style live-preview markdown editor framework demo" />
+  <title>Idaztian — Live Preview Markdown Editor</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&display=swap" rel="stylesheet" />
+  <link rel="stylesheet" href="/src/style.css" />
+</head>
+<body>
+  <header class="app-header" role="banner">
+    <div class="header-left">
+      <span class="app-logo" aria-hidden="true">✍</span>
+      <span class="app-name">Idaztian</span>
+      <span class="app-tagline">Live Preview Markdown</span>
+    </div>
+    <div class="header-actions">
+      <button id="btn-open" class="btn btn-secondary" title="Open a markdown file (Ctrl+O)">
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><path d="M22 19a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h5l2 3h9a2 2 0 0 1 2 2z"/></svg>
+        Open
+      </button>
+      <button id="btn-download" class="btn btn-secondary" title="Download as .md file (Ctrl+S)">
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
+        Download
+      </button>
+      <button id="btn-shortcuts" class="btn btn-ghost" title="Keyboard shortcuts" aria-label="Show keyboard shortcuts">
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><rect x="2" y="4" width="20" height="16" rx="2"/><path d="M6 8h.01M10 8h.01M14 8h.01M18 8h.01M8 12h.01M12 12h.01M16 12h.01M7 16h10"/></svg>
+      </button>
+    </div>
+  </header>
+
+  <main class="app-main" role="main">
+    <div id="editor" class="editor-container" aria-label="Markdown editor"></div>
+  </main>
+
+  <footer class="app-status" role="status" aria-live="polite">
+    <span id="stat-words">Words: 0</span>
+    <span class="stat-sep">·</span>
+    <span id="stat-chars">Characters: 0</span>
+    <span class="stat-sep">·</span>
+    <span id="stat-lines">Lines: 0</span>
+    <span class="stat-sep stat-right-sep">·</span>
+    <span class="stat-hint">Ctrl+B Bold · Ctrl+I Italic · Ctrl+K Link · Ctrl+S Save</span>
+  </footer>
+
+  <!-- Shortcuts modal -->
+  <div id="shortcuts-modal" class="modal" role="dialog" aria-modal="true" aria-labelledby="shortcuts-title" hidden>
+    <div class="modal-backdrop" id="modal-backdrop"></div>
+    <div class="modal-content">
+      <div class="modal-header">
+        <h2 id="shortcuts-title">Keyboard Shortcuts</h2>
+        <button id="btn-close-modal" class="btn btn-ghost" aria-label="Close shortcuts">✕</button>
+      </div>
+      <div class="modal-body">
+        <table class="shortcuts-table">
+          <thead><tr><th>Action</th><th>Shortcut</th></tr></thead>
+          <tbody>
+            <tr><td>Bold</td><td><kbd>Ctrl+B</kbd></td></tr>
+            <tr><td>Italic</td><td><kbd>Ctrl+I</kbd></td></tr>
+            <tr><td>Inline code</td><td><kbd>Ctrl+E</kbd></td></tr>
+            <tr><td>Strikethrough</td><td><kbd>Ctrl+Shift+K</kbd></td></tr>
+            <tr><td>Insert link</td><td><kbd>Ctrl+K</kbd></td></tr>
+            <tr><td>Heading 1–6</td><td><kbd>Ctrl+1</kbd> – <kbd>Ctrl+6</kbd></td></tr>
+            <tr><td>Bullet list</td><td><kbd>Ctrl+Shift+8</kbd></td></tr>
+            <tr><td>Numbered list</td><td><kbd>Ctrl+Shift+7</kbd></td></tr>
+            <tr><td>Task list</td><td><kbd>Ctrl+Shift+9</kbd></td></tr>
+            <tr><td>Undo</td><td><kbd>Ctrl+Z</kbd></td></tr>
+            <tr><td>Redo</td><td><kbd>Ctrl+Shift+Z</kbd></td></tr>
+            <tr><td>Find</td><td><kbd>Ctrl+F</kbd></td></tr>
+            <tr><td>Save / Download</td><td><kbd>Ctrl+S</kbd></td></tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+  </div>
+
+  <!-- Hidden file input -->
+  <input type="file" id="file-input" accept=".md,.markdown,.txt" style="display:none" aria-hidden="true" />
+
+  <script type="module" src="/src/main.ts"></script>
+</body>
+</html>
