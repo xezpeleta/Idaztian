@@ -5,15 +5,18 @@ import { syntaxTree } from '@codemirror/language';
 /**
  * Live-preview extension for bullet and ordered lists.
  *
- * Behavior:
- * - Bullet lists: replace `-`/`*`/`+` marker with a rendered bullet dot,
- *   UNLESS the cursor is adjacent to (within) the marker characters themselves.
- * - Ordered lists: style the `1.` marker; show raw when cursor is on it.
- * - Task lists: render `[ ]` / `[x]` as checkboxes.
+ * Marker visibility rule (applies to ALL list types):
+ *   Show raw markdown syntax ONLY when the cursor is directly adjacent to
+ *   (i.e. within) the marker characters — no spaces tolerance.
+ *   Moving anywhere else on the line keeps the rendered widget.
  *
- * "Adjacent to marker" means the cursor head is within [markerFrom, markerTo].
- * Moving anywhere else on the line keeps the bullet rendered.
+ * Checkbox:
+ *   - Rendered as a real <input type="checkbox"> when cursor is away from `[ ]`/`[x]`
+ *   - Clicking the checkbox toggles the underlying `[ ]` ↔ `[x]` in the document
+ *   - Show raw `[ ]`/`[x]` only when cursor is within those exact characters
  */
+
+// ── Widgets ──────────────────────────────────────────────────────────────────
 
 class BulletWidget extends WidgetType {
     toDOM(): HTMLElement {
@@ -28,30 +31,53 @@ class BulletWidget extends WidgetType {
 }
 
 class CheckboxWidget extends WidgetType {
-    constructor(private readonly checked: boolean) { super(); }
+    constructor(
+        private readonly checked: boolean,
+        private readonly from: number, // position of `[` in the document
+        private readonly to: number,   // position after `]`
+    ) { super(); }
 
-    toDOM(): HTMLElement {
+    toDOM(view: EditorView): HTMLElement {
         const input = document.createElement('input');
         input.type = 'checkbox';
         input.className = 'idz-checkbox';
         input.checked = this.checked;
         input.setAttribute('aria-label', this.checked ? 'Done' : 'To do');
+
+        // Toggle [ ] ↔ [x] in the document on click
+        input.addEventListener('mousedown', (e) => {
+            e.preventDefault(); // prevent focus steal
+        });
+        input.addEventListener('click', (e) => {
+            e.preventDefault();
+            const replacement = this.checked ? '[ ]' : '[x]';
+            view.dispatch(view.state.update({
+                changes: { from: this.from, to: this.to, insert: replacement },
+                userEvent: 'input',
+            }));
+        });
+
         return input;
     }
 
-    eq(other: CheckboxWidget): boolean { return other.checked === this.checked; }
+    eq(other: CheckboxWidget): boolean {
+        return other.checked === this.checked && other.from === this.from;
+    }
     ignoreEvent(): boolean { return false; }
 }
 
+// ── Cursor proximity check ────────────────────────────────────────────────────
+
 /**
  * Returns true if the cursor head is within [markerFrom, markerTo] (inclusive).
- * This is the "adjacent to marker" check — only reveal raw syntax when the
- * cursor is actually on the marker characters, not just anywhere on the line.
+ * "Within" means directly on the marker characters — no spaces tolerance.
  */
 function isCursorOnMarker(view: EditorView, markerFrom: number, markerTo: number): boolean {
     const head = view.state.selection.main.head;
     return head >= markerFrom && head <= markerTo;
 }
+
+// ── Decoration builder ────────────────────────────────────────────────────────
 
 function buildListDecorations(view: EditorView): DecorationSet {
     const decorations: Range<Decoration>[] = [];
@@ -62,70 +88,116 @@ function buildListDecorations(view: EditorView): DecorationSet {
             from,
             to,
             enter(node) {
-                // ListItem contains the marker
-                if (node.name === 'ListItem') {
-                    const line = state.doc.lineAt(node.from);
-                    const lineText = line.text;
+                if (node.name !== 'ListItem') return;
 
-                    // Task list: - [ ] or - [x]
-                    const taskMatch = lineText.match(/^(\s*[-*+]\s+)\[([ xX])\]\s/);
-                    if (taskMatch) {
-                        const markerStart = line.from;
-                        const checkboxStart = line.from + taskMatch[1].length;
-                        const checkboxEnd = checkboxStart + 3; // `[ ]` or `[x]`
-                        const checked = taskMatch[2].toLowerCase() === 'x';
-                        const cursorOnMarker = isCursorOnMarker(view, markerStart, checkboxEnd);
+                const line = state.doc.lineAt(node.from);
+                const text = line.text;
 
-                        if (!cursorOnMarker) {
-                            // Hide the bullet marker
-                            decorations.push(
-                                Decoration.replace({ widget: new BulletWidget() }).range(markerStart, checkboxStart)
-                            );
-                            // Replace [ ] / [x] with checkbox widget
-                            decorations.push(
-                                Decoration.replace({ widget: new CheckboxWidget(checked) }).range(checkboxStart, checkboxEnd)
-                            );
-                        }
-                        return;
+                // ── Task list: - [ ] text  or  - [x] text ──────────────────
+                const taskMatch = text.match(/^(\s*)([-*+])(\s+)(\[([ xX])\])(\s?)/);
+                if (taskMatch) {
+                    const indent = taskMatch[1].length;
+                    const spaceBetween = taskMatch[3].length;
+                    const checkboxStr = taskMatch[4]; // `[ ]` or `[x]`
+                    const checked = taskMatch[5].toLowerCase() === 'x';
+                    const trailingSpace = taskMatch[6].length;
+
+                    // Bullet marker: the `-` character (and its trailing space)
+                    const bulletFrom = line.from + indent;
+                    const checkboxFrom = bulletFrom + 1 + spaceBetween;
+                    const checkboxTo = checkboxFrom + checkboxStr.length;
+
+                    const cursorOnBullet = isCursorOnMarker(view, bulletFrom, bulletFrom + 1);
+                    const cursorOnCheckbox = isCursorOnMarker(view, checkboxFrom, checkboxTo);
+
+                    if (!cursorOnBullet && !cursorOnCheckbox) {
+                        // Render bullet as •
+                        decorations.push(
+                            Decoration.replace({ widget: new BulletWidget() })
+                                .range(bulletFrom, checkboxFrom)
+                        );
+                        // Render checkbox as <input>
+                        decorations.push(
+                            Decoration.replace({
+                                widget: new CheckboxWidget(checked, checkboxFrom, checkboxTo),
+                            }).range(checkboxFrom, checkboxTo + trailingSpace)
+                        );
+                    } else if (cursorOnBullet) {
+                        // Show raw bullet marker, render checkbox
+                        decorations.push(
+                            Decoration.mark({ class: 'idz-marker' }).range(bulletFrom, bulletFrom + 1)
+                        );
+                        decorations.push(
+                            Decoration.replace({
+                                widget: new CheckboxWidget(checked, checkboxFrom, checkboxTo),
+                            }).range(checkboxFrom, checkboxTo + trailingSpace)
+                        );
+                    } else {
+                        // cursorOnCheckbox: show raw [ ] / [x], render bullet as •
+                        decorations.push(
+                            Decoration.replace({ widget: new BulletWidget() })
+                                .range(bulletFrom, checkboxFrom)
+                        );
+                        decorations.push(
+                            Decoration.mark({ class: 'idz-marker' }).range(checkboxFrom, checkboxTo)
+                        );
                     }
 
-                    // Bullet list: - item, * item, + item
-                    const bulletMatch = lineText.match(/^(\s*)([-*+])(\s)/);
-                    if (bulletMatch) {
-                        const indent = bulletMatch[1].length;
-                        const markerFrom = line.from + indent;
-                        const markerTo = markerFrom + 1 + bulletMatch[3].length; // marker char + space
-                        const cursorOnMarker = isCursorOnMarker(view, markerFrom, markerTo);
-
-                        if (!cursorOnMarker) {
-                            decorations.push(
-                                Decoration.replace({ widget: new BulletWidget() }).range(markerFrom, markerTo)
-                            );
-                        } else {
-                            decorations.push(
-                                Decoration.mark({ class: 'idz-marker' }).range(markerFrom, markerTo)
-                            );
-                        }
-                        return;
+                    // Mark the bullet char for styling even when shown raw
+                    if (cursorOnBullet) {
+                        decorations.push(
+                            Decoration.mark({ class: 'idz-marker' })
+                                .range(bulletFrom, bulletFrom + 1)
+                        );
                     }
 
-                    // Ordered list: 1. item
-                    const orderedMatch = lineText.match(/^(\s*)(\d+\.)(\s)/);
-                    if (orderedMatch) {
-                        const indent = orderedMatch[1].length;
-                        const markerFrom = line.from + indent;
-                        const markerTo = markerFrom + orderedMatch[2].length + orderedMatch[3].length;
-                        const cursorOnMarker = isCursorOnMarker(view, markerFrom, markerTo);
+                    return;
+                }
 
-                        if (!cursorOnMarker) {
-                            decorations.push(
-                                Decoration.mark({ class: 'idz-ordered-marker' }).range(markerFrom, markerTo)
-                            );
-                        } else {
-                            decorations.push(
-                                Decoration.mark({ class: 'idz-marker' }).range(markerFrom, markerTo)
-                            );
-                        }
+                // ── Bullet list: - item, * item, + item ────────────────────
+                const bulletMatch = text.match(/^(\s*)([-*+])(\s)/);
+                if (bulletMatch) {
+                    const indent = bulletMatch[1].length;
+                    const markerFrom = line.from + indent;
+                    const markerTo = markerFrom + 1; // just the `-` / `*` / `+` char
+                    const markerWithSpaceTo = markerTo + bulletMatch[3].length;
+
+                    const cursorOnMarker = isCursorOnMarker(view, markerFrom, markerTo);
+
+                    if (!cursorOnMarker) {
+                        decorations.push(
+                            Decoration.replace({ widget: new BulletWidget() })
+                                .range(markerFrom, markerWithSpaceTo)
+                        );
+                    } else {
+                        decorations.push(
+                            Decoration.mark({ class: 'idz-marker' })
+                                .range(markerFrom, markerWithSpaceTo)
+                        );
+                    }
+                    return;
+                }
+
+                // ── Ordered list: 1. item ──────────────────────────────────
+                const orderedMatch = text.match(/^(\s*)(\d+\.)(\s)/);
+                if (orderedMatch) {
+                    const indent = orderedMatch[1].length;
+                    const markerFrom = line.from + indent;
+                    const markerTo = markerFrom + orderedMatch[2].length; // e.g. `1.`
+                    const markerWithSpaceTo = markerTo + orderedMatch[3].length;
+
+                    const cursorOnMarker = isCursorOnMarker(view, markerFrom, markerTo);
+
+                    if (!cursorOnMarker) {
+                        decorations.push(
+                            Decoration.mark({ class: 'idz-ordered-marker' })
+                                .range(markerFrom, markerWithSpaceTo)
+                        );
+                    } else {
+                        decorations.push(
+                            Decoration.mark({ class: 'idz-marker' })
+                                .range(markerFrom, markerWithSpaceTo)
+                        );
                     }
                 }
             },
@@ -135,6 +207,8 @@ function buildListDecorations(view: EditorView): DecorationSet {
     decorations.sort((a, b) => a.from - b.from || a.value.startSide - b.value.startSide);
     return Decoration.set(decorations, true);
 }
+
+// ── Plugin ────────────────────────────────────────────────────────────────────
 
 const listsPlugin = ViewPlugin.fromClass(
     class {
