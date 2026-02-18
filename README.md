@@ -40,6 +40,17 @@ npm run dev
 
 Open [http://localhost:5173](http://localhost:5173)
 
+### Using Docker
+
+```bash
+# Install dependencies (via Docker per agents.md)
+docker run --rm -v "$(pwd)":/app -w /app node:lts npm install
+
+# Start dev server
+docker run --rm -v "$(pwd)":/app -w /app/demo -p 5174:5174 node:lts npx vite --host 0.0.0.0 --port 5174
+
+```
+
 ## Documentation
 
 See [`docs/PRD.md`](docs/PRD.md) for the full Product Requirements Document.
