@@ -724,6 +724,12 @@ import { IdaztianEditor } from 'idaztian';
 - [x] Selection wrap: typing format chars wraps selected text
 - [x] Demo app with open/download
 
+### Phase 1.5 — Local Persistence (v0.2)
+
+- [ ] Auto-save editor content to browser `localStorage` on every change (debounced)
+- [ ] On page load, restore the last-edited document from `localStorage` automatically
+- [ ] Persist document even after closing and reopening the browser/tab
+
 ### Phase 2 — Full Spec (v0.5)
 
 - [ ] Remaining live-preview extensions: tables, images, math, alerts, footnotes, task lists

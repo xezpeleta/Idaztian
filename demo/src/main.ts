@@ -1,5 +1,6 @@
 import { IdaztianEditor } from 'idaztian';
 import { openFile, downloadFile } from './file-handler';
+import { saveContent, loadContent } from './local-storage';
 
 // ── Sample content ──────────────────────────────────────────────────────────
 
@@ -86,11 +87,14 @@ Click the **⌨** button in the header to see all shortcuts.
 
 let currentFilename = 'document.md';
 
+const storedContent = loadContent();
+
 const editor = new IdaztianEditor({
     parent: document.getElementById('editor')!,
-    initialContent: SAMPLE_CONTENT,
+    initialContent: storedContent ?? SAMPLE_CONTENT,
     onChange(content) {
         updateStats(content);
+        saveContent(content);
     },
     onSave(content) {
         downloadFile(content, currentFilename);
@@ -110,7 +114,7 @@ function updateStats(content: string) {
 }
 
 // Initialize stats
-updateStats(SAMPLE_CONTENT);
+updateStats(storedContent ?? SAMPLE_CONTENT);
 
 // ── Header buttons ───────────────────────────────────────────────────────────
 
