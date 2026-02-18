@@ -7,6 +7,7 @@ import { IdaztianConfig, DEFAULT_CONFIG } from './config';
 import { EventEmitter, IdaztianEventMap } from './events';
 import { buildExtensions } from './extensions';
 import { shortcutsExtension } from './extensions/shortcuts';
+import { selectionWrapExtension } from './extensions/selection-wrap';
 import { ilunabarDark } from './theme/ilunabar-dark';
 import { wordCount, charCount } from './utils/markdown';
 
@@ -101,6 +102,9 @@ export class IdaztianEditor {
 
             // Live-preview extensions
             ...buildExtensions(extConfig),
+
+            // Selection wrap: typing format chars wraps selected text
+            selectionWrapExtension(),
 
             // Keyboard shortcuts
             ...shortcutsExtension(cfg.onSave),
