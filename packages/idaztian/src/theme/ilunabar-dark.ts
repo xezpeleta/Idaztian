@@ -193,6 +193,7 @@ export const ilunabarDarkTheme = EditorView.theme(
             borderTopLeftRadius: '6px',
             borderTopRightRadius: '6px',
             paddingTop: '0.75em',
+            position: 'relative',
         },
         '.idz-code-last': {
             borderBottomLeftRadius: '6px',
@@ -201,6 +202,52 @@ export const ilunabarDarkTheme = EditorView.theme(
         },
         '.idz-code-middle': {
             // no extra rounding — seamlessly connects to adjacent lines
+        },
+
+        // ── Copy button ─────────────────────────────────────────────────────
+        '.idz-copy-btn': {
+            position: 'absolute',
+            top: '0.45em',
+            right: '0.6em',
+            display: 'inline-flex',
+            alignItems: 'center',
+            gap: '0.35em',
+            padding: '0.2em 0.55em',
+            border: 'none',
+            borderRadius: '4px',
+            background: 'transparent',
+            color: colors.textMuted,
+            fontSize: '0.78em',
+            fontFamily: "'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif",
+            cursor: 'pointer',
+            lineHeight: '1',
+            transition: 'background 0.15s ease, color 0.15s ease',
+            userSelect: 'none',
+            zIndex: '10',
+        },
+        '.idz-copy-btn:hover': {
+            background: 'rgba(255,255,255,0.08)',
+            color: colors.text,
+        },
+        '.idz-copy-btn:active': {
+            background: 'rgba(255,255,255,0.14)',
+        },
+        '.idz-copy-btn__label': {
+            display: 'inline-flex',
+            alignItems: 'center',
+        },
+        '.idz-copy-btn__hint': {
+            opacity: '0',
+            maxWidth: '0',
+            overflow: 'hidden',
+            transition: 'opacity 0.15s ease, max-width 0.15s ease',
+            whiteSpace: 'nowrap',
+            fontSize: '0.9em',
+            color: colors.textMuted,
+        },
+        '.idz-copy-btn:hover .idz-copy-btn__hint': {
+            opacity: '1',
+            maxWidth: '3em',
         },
         // Fence line hidden (cursor away) — collapse the line visually
         '.idz-fence-hidden': {
@@ -222,6 +269,13 @@ export const ilunabarDarkTheme = EditorView.theme(
             color: colors.textFaint,
             opacity: '0.7',
         },
+
+        // ── Toast notification ───────────────────────────────────────────────
+        // Injected into document.body by the copy button widget
+        // Note: CM6 EditorView.theme() only scopes styles inside the editor DOM,
+        // so we add a global <style> tag for the toast instead (see code.ts).
+        // The rule below is kept here for documentation; the actual injection
+        // happens via a separate globalToastStyle extension.
 
         // ── Lists ───────────────────────────────────────────────────────────
         '.idz-bullet': {
