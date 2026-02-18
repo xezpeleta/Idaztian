@@ -140,6 +140,10 @@ export const ilunabarDarkTheme = EditorView.theme(
         '.idz-marker': {
             color: colors.text,
         },
+        // Force inner lezer spans (e.g. punctuation) to inherit our color
+        '.idz-marker *': {
+            color: 'inherit',
+        },
 
         // ── Links ───────────────────────────────────────────────────────────
         '.idz-link': {
