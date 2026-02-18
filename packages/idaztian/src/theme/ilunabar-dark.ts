@@ -138,8 +138,7 @@ export const ilunabarDarkTheme = EditorView.theme(
 
         // ── Marker (visible syntax tokens) ─────────────────────────────────
         '.idz-marker': {
-            color: colors.textFaint,
-            opacity: '0.7',
+            color: colors.text,
         },
 
         // ── Links ───────────────────────────────────────────────────────────
