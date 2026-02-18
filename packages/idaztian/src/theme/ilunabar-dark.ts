@@ -508,11 +508,19 @@ export const ilunabarDarkTheme = EditorView.theme(
         },
 
         // ── Tables (always-rendered widget) ─────────────────────────────────
-        '.idz-table-wrapper': {
+        // Outer: block-level scroll container (handles wide tables + margin).
+        '.idz-table-outer': {
             display: 'block',
             maxWidth: '100%',
             margin: '0.75em 0',
             overflowX: 'auto',
+        },
+        // Wrapper: inline-flex so it shrinks to the table's actual content width.
+        // This keeps the add-col lane flush against the table's right edge.
+        '.idz-table-wrapper': {
+            display: 'inline-flex',
+            alignItems: 'stretch',
+            minWidth: '0',
         },
         '.idz-table': {
             borderCollapse: 'collapse',
@@ -552,21 +560,19 @@ export const ilunabarDarkTheme = EditorView.theme(
             backgroundColor: 'rgba(255,255,255,0.03)',
         },
 
-        // ── Ghost column (last column in table, hidden until hover) ──────────
-        '.idz-table-ghost-col-cell': {
-            border: 'none',
-            padding: '0',
-            width: '28px',
-            minWidth: '28px',
-            maxWidth: '28px',
-            textAlign: 'center',
-            verticalAlign: 'middle',
+        // ── Add-column lane: flex sibling of the table, same height via align-items stretch ─
+        '.idz-table-add-col-lane': {
+            width: '26px',
+            flexShrink: '0',
+            display: 'flex',
+            alignItems: 'stretch',
+            justifyContent: 'center',
+            padding: '0 4px',
             opacity: '0',
             transition: 'opacity 0.15s ease',
             pointerEvents: 'none',
-            backgroundColor: 'transparent',
         },
-        '.idz-table:hover .idz-table-ghost-col-cell': {
+        '.idz-table-wrapper:hover .idz-table-add-col-lane': {
             opacity: '1',
             pointerEvents: 'auto',
         },
@@ -617,7 +623,15 @@ export const ilunabarDarkTheme = EditorView.theme(
             height: '18px',
             fontSize: '13px',
         },
-
+        // Full-height dashed rectangle, mirroring the full-width add-row button.
+        // Must come AFTER the base .idz-table-add-btn rule to override height/radius.
+        '.idz-table-add-btn--col': {
+            width: '18px',
+            height: 'auto',     // override base 22px; flex align-items:stretch fills the rest
+            alignSelf: 'stretch',
+            borderRadius: '4px',
+            fontSize: '13px',
+        },
         // ── Toolbar ──────────────────────────────────────────────────────────
         '.idz-toolbar': {
             display: 'flex',

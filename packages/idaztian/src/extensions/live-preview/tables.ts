@@ -164,12 +164,19 @@ class TableWidget extends WidgetType {
     }
 
     toDOM(view: EditorView): HTMLElement {
+        // Outer: block-level element that handles overflow-x for wide tables.
+        // CM6 holds a reference to this element; updateDOM receives it.
+        const outer = document.createElement('div');
+        outer.className = 'idz-table-outer';
+
+        // Mutable refs — stored on outer (what updateDOM receives).
+        const refs: TableRefs = { data: this.data, widget: this };
+        (outer as any).__tableRefs = refs;
+
+        // Wrapper: inline-flex, shrinks to table width + lane width.
+        // This keeps the add-col lane directly adjacent to the table edge.
         const wrapper = document.createElement('div');
         wrapper.className = 'idz-table-wrapper';
-
-        // Mutable refs — updated by updateDOM so closures always see current state
-        const refs: TableRefs = { data: this.data, widget: this };
-        (wrapper as any).__tableRefs = refs;
 
         const tableEl = document.createElement('table');
         tableEl.className = 'idz-table';
@@ -186,19 +193,6 @@ class TableWidget extends WidgetType {
             );
         }
 
-        // Ghost column header cell ("+")
-        const ghostColTh = document.createElement('th');
-        ghostColTh.className = 'idz-table-ghost-col-cell';
-        const addColBtn = document.createElement('button');
-        addColBtn.className = 'idz-table-add-btn';
-        addColBtn.type = 'button';
-        addColBtn.title = 'Add column';
-        addColBtn.textContent = '+';
-        addColBtn.addEventListener('mousedown', (e) => e.preventDefault());
-        addColBtn.addEventListener('click', () => refs.widget.addColumn(view));
-        ghostColTh.appendChild(addColBtn);
-        headTr.appendChild(ghostColTh);
-
         thead.appendChild(headTr);
         tableEl.appendChild(thead);
 
@@ -212,18 +206,14 @@ class TableWidget extends WidgetType {
                     this.makeCell('td', this.data.rows[r][c] ?? '', r, c, tableEl, view, refs)
                 );
             }
-            // Ghost column body cell
-            const ghostTd = document.createElement('td');
-            ghostTd.className = 'idz-table-ghost-col-cell';
-            tr.appendChild(ghostTd);
             tbody.appendChild(tr);
         }
 
-        // Ghost row ("+")
+        // Ghost row (dashed line spanning full width, with centred "+" button)
         const ghostRowTr = document.createElement('tr');
         ghostRowTr.className = 'idz-table-ghost-row';
         const ghostRowTd = document.createElement('td');
-        ghostRowTd.colSpan = colCount + 1;
+        ghostRowTd.colSpan = colCount;
         const addRowBtn = document.createElement('button');
         addRowBtn.className = 'idz-table-add-btn idz-table-add-btn--row';
         addRowBtn.type = 'button';
@@ -238,6 +228,25 @@ class TableWidget extends WidgetType {
         tableEl.appendChild(tbody);
         wrapper.appendChild(tableEl);
 
+        // ── Add-column lane (dashed vertical line + centred "+" button) ───
+        // Sits as a flex sibling of the table inside the inline-flex wrapper,
+        // so it is always exactly as tall as the table and positioned right
+        // at its right edge — regardless of how wide the table is.
+        const addColLane = document.createElement('div');
+        addColLane.className = 'idz-table-add-col-lane';
+
+        const addColBtn = document.createElement('button');
+        addColBtn.className = 'idz-table-add-btn idz-table-add-btn--col';
+        addColBtn.type = 'button';
+        addColBtn.title = 'Add column';
+        addColBtn.textContent = '+';
+        addColBtn.addEventListener('mousedown', (e) => e.preventDefault());
+        addColBtn.addEventListener('click', () => refs.widget.addColumn(view));
+        addColLane.appendChild(addColBtn);
+
+        wrapper.appendChild(addColLane);
+        outer.appendChild(wrapper);
+
         // ── Table-specific context menu ────────────────────────────────────
         wrapper.addEventListener('contextmenu', (e) => {
             e.preventDefault();
@@ -249,7 +258,7 @@ class TableWidget extends WidgetType {
             showTableContextMenu(e.clientX, e.clientY, view, refs.data, rowIdx, colIdx);
         });
 
-        return wrapper;
+        return outer;
     }
 
     private makeCell(
