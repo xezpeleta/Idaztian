@@ -356,9 +356,10 @@ const tableDecorationsField = StateField.define<DecorationSet>({
         return buildTableDecorations(state);
     },
     update(decos, tr) {
-        // Only rebuild when the document actually changed.
-        // Cursor/selection changes do not affect table rendering.
-        if (tr.docChanged) {
+        // Rebuild when the document changed OR when the syntax tree was extended
+        // by the incremental background parser (catches tables further down the
+        // document that weren't parsed yet on the first create() call).
+        if (tr.docChanged || syntaxTree(tr.state) !== syntaxTree(tr.startState)) {
             return buildTableDecorations(tr.state);
         }
         return decos;
