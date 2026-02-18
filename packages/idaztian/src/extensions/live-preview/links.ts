@@ -54,23 +54,31 @@ function buildLinkDecorations(view: EditorView): DecorationSet {
             enter(node) {
                 // Inline images: ![alt](url)
                 if (node.name === 'Image') {
+                    const raw = state.sliceDoc(node.from, node.to);
+                    const match = raw.match(/^!\[([^\]]*)\]\(([^)]+)\)$/);
+                    if (!match) return false;
+
+                    const [, alt, src] = match;
                     const cursorOn = isCursorInRange(state, node.from, node.to);
+
                     if (!cursorOn) {
-                        const raw = state.sliceDoc(node.from, node.to);
-                        const match = raw.match(/^!\[([^\]]*)\]\(([^)]+)\)$/);
-                        if (match) {
-                            const [, alt, src] = match;
-                            // Replace entire image syntax with rendered image widget
-                            decorations.push(
-                                Decoration.replace({
-                                    widget: new ImageWidget(src, alt),
-                                    block: false,
-                                }).range(node.from, node.to)
-                            );
-                        }
+                        // Replace entire image syntax with rendered image widget
+                        decorations.push(
+                            Decoration.replace({
+                                widget: new ImageWidget(src, alt),
+                                block: false,
+                            }).range(node.from, node.to)
+                        );
                     } else {
+                        // Show raw syntax and keep the image visible below it
                         decorations.push(
                             Decoration.mark({ class: 'idz-image-syntax' }).range(node.from, node.to)
+                        );
+                        decorations.push(
+                            Decoration.widget({
+                                widget: new ImageWidget(src, alt),
+                                side: 1,
+                            }).range(node.to)
                         );
                     }
                     return false; // Don't descend into image children
