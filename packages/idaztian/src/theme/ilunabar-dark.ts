@@ -301,15 +301,13 @@ export const ilunabarDarkTheme = EditorView.theme(
         '.idz-blockquote': {
             borderLeft: `3px solid ${colors.accent}`,
             paddingLeft: '1em',
-            color: colors.textMuted,
-            fontStyle: 'italic',
+            color: colors.text,
             margin: '0.5em 0',
         },
         '.idz-blockquote-line': {
             borderLeft: `3px solid ${colors.accent}`,
             paddingLeft: '1em',
-            color: colors.textMuted,
-            fontStyle: 'italic',
+            color: colors.text,
         },
 
         // ── Horizontal rule ─────────────────────────────────────────────────
@@ -334,21 +332,41 @@ export const ilunabarDarkTheme = EditorView.theme(
 
         // ── Alerts / Callouts ────────────────────────────────────────────────
         '.idz-alert-line': {
-            paddingLeft: '1em',
+            paddingLeft: '1.1em',
+            paddingRight: '1em',
             borderLeft: '3px solid',
             margin: '0',
+            color: colors.text,
+            fontStyle: 'normal',
+        },
+        '.idz-alert-first': {
+            borderTopLeftRadius: '6px',
+            borderTopRightRadius: '6px',
+            paddingTop: '0.55em',
+            marginTop: '0.85em',
+        },
+        '.idz-alert-last': {
+            borderBottomLeftRadius: '6px',
+            borderBottomRightRadius: '6px',
+            paddingBottom: '0.55em',
+            marginBottom: '0.85em',
         },
         '.idz-alert-header': {
             display: 'inline-flex',
             alignItems: 'center',
-            gap: '0.4em',
+            gap: '0.45em',
             fontWeight: '600',
             fontStyle: 'normal',
             fontSize: '0.9em',
-            paddingBottom: '0.1em',
+            lineHeight: '1',
         },
         '.idz-alert-icon': {
-            fontSize: '1em',
+            display: 'inline-flex',
+            alignItems: 'center',
+            flexShrink: '0',
+        },
+        '.idz-alert-icon svg': {
+            display: 'block',
         },
         '.idz-alert-type-syntax': {
             fontWeight: '600',
@@ -356,16 +374,16 @@ export const ilunabarDarkTheme = EditorView.theme(
         },
         // NOTE — blue
         '.idz-alert-note': {
-            borderLeftColor: '#2f81f7',
-            backgroundColor: 'rgba(47, 129, 247, 0.06)',
+            borderLeftColor: '#4493f8',
+            backgroundColor: 'rgba(68, 147, 248, 0.1)',
         },
         '.idz-alert-header-note': {
-            color: '#2f81f7',
+            color: '#4493f8',
         },
         // TIP — green
         '.idz-alert-tip': {
             borderLeftColor: '#3fb950',
-            backgroundColor: 'rgba(63, 185, 80, 0.06)',
+            backgroundColor: 'rgba(63, 185, 80, 0.1)',
         },
         '.idz-alert-header-tip': {
             color: '#3fb950',
@@ -373,23 +391,23 @@ export const ilunabarDarkTheme = EditorView.theme(
         // IMPORTANT — purple
         '.idz-alert-important': {
             borderLeftColor: '#a371f7',
-            backgroundColor: 'rgba(163, 113, 247, 0.06)',
+            backgroundColor: 'rgba(163, 113, 247, 0.1)',
         },
         '.idz-alert-header-important': {
             color: '#a371f7',
         },
-        // WARNING — yellow
+        // WARNING — amber
         '.idz-alert-warning': {
             borderLeftColor: '#d29922',
-            backgroundColor: 'rgba(210, 153, 34, 0.06)',
+            backgroundColor: 'rgba(210, 153, 34, 0.1)',
         },
         '.idz-alert-header-warning': {
-            color: '#d29922',
+            color: '#e3a426',
         },
         // CAUTION — red
         '.idz-alert-caution': {
             borderLeftColor: '#f85149',
-            backgroundColor: 'rgba(248, 81, 73, 0.06)',
+            backgroundColor: 'rgba(248, 81, 73, 0.1)',
         },
         '.idz-alert-header-caution': {
             color: '#f85149',
