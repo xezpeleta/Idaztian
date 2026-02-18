@@ -100,7 +100,6 @@ function buildListDecorations(view: EditorView): DecorationSet {
                     const spaceBetween = taskMatch[3].length;
                     const checkboxStr = taskMatch[4]; // `[ ]` or `[x]`
                     const checked = taskMatch[5].toLowerCase() === 'x';
-                    const trailingSpace = taskMatch[6].length;
 
                     // Bullet marker: the `-` character (and its trailing space)
                     const bulletFrom = line.from + indent;
@@ -111,16 +110,16 @@ function buildListDecorations(view: EditorView): DecorationSet {
                     const cursorOnCheckbox = isCursorOnMarker(view, checkboxFrom, checkboxTo);
 
                     if (!cursorOnBullet && !cursorOnCheckbox) {
-                        // Render bullet as •
+                        // Render bullet as • (replace only `-` + spaces-between, keep trailing space)
                         decorations.push(
                             Decoration.replace({ widget: new BulletWidget() })
                                 .range(bulletFrom, checkboxFrom)
                         );
-                        // Render checkbox as <input>
+                        // Render checkbox as <input> (replace only `[ ]`/`[x]`, keep trailing space)
                         decorations.push(
                             Decoration.replace({
                                 widget: new CheckboxWidget(checked, checkboxFrom, checkboxTo),
-                            }).range(checkboxFrom, checkboxTo + trailingSpace)
+                            }).range(checkboxFrom, checkboxTo)
                         );
                     } else if (cursorOnBullet) {
                         // Show raw bullet marker, render checkbox
@@ -130,7 +129,7 @@ function buildListDecorations(view: EditorView): DecorationSet {
                         decorations.push(
                             Decoration.replace({
                                 widget: new CheckboxWidget(checked, checkboxFrom, checkboxTo),
-                            }).range(checkboxFrom, checkboxTo + trailingSpace)
+                            }).range(checkboxFrom, checkboxTo)
                         );
                     } else {
                         // cursorOnCheckbox: show raw [ ] / [x], render bullet as •
@@ -165,9 +164,10 @@ function buildListDecorations(view: EditorView): DecorationSet {
                     const cursorOnMarker = isCursorOnMarker(view, markerFrom, markerTo);
 
                     if (!cursorOnMarker) {
+                        // Replace only the marker char, keep the trailing space as real text
                         decorations.push(
                             Decoration.replace({ widget: new BulletWidget() })
-                                .range(markerFrom, markerWithSpaceTo)
+                                .range(markerFrom, markerTo)
                         );
                     } else {
                         decorations.push(
