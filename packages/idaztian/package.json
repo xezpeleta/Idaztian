@@ -25,14 +25,19 @@
         "test:watch": "vitest"
     },
     "dependencies": {
+        "@codemirror/autocomplete": "^6.20.0",
         "@codemirror/commands": "^6.7.1",
+        "@codemirror/lang-markdown": "^6.3.2",
         "@codemirror/language": "^6.10.6",
         "@codemirror/language-data": "^6.5.1",
-        "@codemirror/lang-markdown": "^6.3.2",
         "@codemirror/search": "^6.5.8",
         "@codemirror/state": "^6.5.0",
         "@codemirror/view": "^6.36.3",
-        "@lezer/markdown": "^1.4.0"
+        "@lezer/markdown": "^1.4.0",
+        "@types/katex": "^0.16.8",
+        "@types/turndown": "^5.0.6",
+        "katex": "^0.16.28",
+        "turndown": "^7.2.2"
     },
     "devDependencies": {
         "@vitest/ui": "^2.1.9",

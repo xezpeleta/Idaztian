@@ -63,6 +63,30 @@ const editor = new IdaztianEditor({
 >
 > It can span multiple lines.
 
+### Alerts / Callouts
+
+> [!NOTE]
+> This is a note callout. Move your cursor here to reveal the raw syntax.
+
+> [!TIP]
+> Use **Ctrl+B** for bold, **Ctrl+I** for italic, and **Ctrl+K** for links.
+
+> [!WARNING]
+> Unsaved changes will be lost if you close the tab without downloading.
+
+> [!IMPORTANT]
+> Idaztian auto-saves your work to browser localStorage on every keystroke.
+
+> [!CAUTION]
+> Large documents with many images may affect performance.
+
+### Footnotes
+
+Footnotes let you add references[^1] without cluttering the text[^2].
+
+[^1]: This is the first footnote definition.
+[^2]: And this is the second one.
+
 ### Horizontal Rule
 
 ---
@@ -74,16 +98,21 @@ const editor = new IdaztianEditor({
 | Ctrl+B | Bold |
 | Ctrl+I | Italic |
 | Ctrl+K | Insert link |
+| Ctrl+E | Inline code |
 | Ctrl+S | Save/Download |
+| Ctrl+F | Find |
+| Ctrl+H | Find & Replace |
 
 Click the **⌨** button in the header to see all shortcuts.
 
 ---
 
 *Start writing your own content — or click **Open** to load a markdown file.*
+*You can also **drag & drop** a \`.md\` file onto the editor, or **paste HTML** from any webpage to auto-convert it to markdown.*
 `;
 
 // ── Editor setup ─────────────────────────────────────────────────────────────
+
 
 let currentFilename = 'document.md';
 
