@@ -13,6 +13,26 @@ import {
     tableDeleteColumn, tableSortByColumn,
 } from './commands';
 import { TableData } from '../utils/table';
+import { showToast } from '../utils/toast';
+
+let canCopyClipboard = true;
+let canPasteClipboard = false; // Require explicit grant for read (Paste) without native prompt
+
+if (typeof navigator !== 'undefined' && navigator.permissions) {
+    try {
+        navigator.permissions.query({ name: 'clipboard-write' as PermissionName }).then(s => {
+            canCopyClipboard = s.state === 'granted' || s.state === 'prompt';
+            s.addEventListener('change', () => canCopyClipboard = s.state === 'granted' || s.state === 'prompt');
+        }).catch(() => { });
+    } catch (e) { }
+
+    try {
+        navigator.permissions.query({ name: 'clipboard-read' as PermissionName }).then(s => {
+            canPasteClipboard = s.state === 'granted';
+            s.addEventListener('change', () => canPasteClipboard = s.state === 'granted');
+        }).catch(() => { });
+    } catch (e) { }
+}
 
 /**
  * Custom context menu (right-click) with Format / Paragraph / Insert submenus.
@@ -358,6 +378,7 @@ function buildEditorMenuItems(): MenuItem[] {
         {
             label: 'Cut',
             shortcut: 'Ctrl+X',
+            disabled: !canCopyClipboard,
             action: (v) => {
                 v.focus();
                 if (!document.execCommand('cut')) {
@@ -365,7 +386,11 @@ function buildEditorMenuItems(): MenuItem[] {
                     if (text && navigator.clipboard) {
                         navigator.clipboard.writeText(text).then(() => {
                             v.dispatch(v.state.replaceSelection(''));
+                        }).catch(() => {
+                            showToast('Clipboard access denied. Please use Ctrl+X or Cmd+X.', true);
                         });
+                    } else {
+                        showToast('Clipboard access denied. Please use Ctrl+X or Cmd+X.', true);
                     }
                 }
             }
@@ -373,12 +398,17 @@ function buildEditorMenuItems(): MenuItem[] {
         {
             label: 'Copy',
             shortcut: 'Ctrl+C',
+            disabled: !canCopyClipboard,
             action: (v) => {
                 v.focus();
                 if (!document.execCommand('copy')) {
                     const text = v.state.sliceDoc(v.state.selection.main.from, v.state.selection.main.to);
                     if (text && navigator.clipboard) {
-                        navigator.clipboard.writeText(text);
+                        navigator.clipboard.writeText(text).catch(() => {
+                            showToast('Clipboard access denied. Please use Ctrl+C or Cmd+C.', true);
+                        });
+                    } else {
+                        showToast('Clipboard access denied. Please use Ctrl+C or Cmd+C.', true);
                     }
                 }
             }
@@ -386,50 +416,57 @@ function buildEditorMenuItems(): MenuItem[] {
         {
             label: 'Paste',
             shortcut: 'Ctrl+V',
+            disabled: !canPasteClipboard,
             action: async (v) => {
                 v.focus();
                 if (document.execCommand('paste')) return;
 
                 try {
+                    let html = '', plain = '';
                     if (navigator.clipboard && navigator.clipboard.read) {
-                        const items = await navigator.clipboard.read();
-                        let html = '', plain = '';
-                        for (const item of items) {
-                            if (item.types.includes('text/html')) {
-                                const blob = await item.getType('text/html');
-                                html = await blob.text();
+                        try {
+                            const items = await navigator.clipboard.read();
+                            for (const item of items) {
+                                if (item.types.includes('text/html')) {
+                                    const blob = await item.getType('text/html');
+                                    html = await blob.text();
+                                }
+                                if (item.types.includes('text/plain')) {
+                                    const blob = await item.getType('text/plain');
+                                    plain = await blob.text();
+                                }
                             }
-                            if (item.types.includes('text/plain')) {
-                                const blob = await item.getType('text/plain');
-                                plain = await blob.text();
+                        } catch (e) {
+                            if (navigator.clipboard.readText) {
+                                plain = await navigator.clipboard.readText();
+                            } else {
+                                throw e;
                             }
                         }
-                        if (html || plain) {
-                            const dt = new DataTransfer();
-                            if (html) dt.setData('text/html', html);
-                            if (plain) dt.setData('text/plain', plain);
-                            const pasteEvent = new ClipboardEvent('paste', {
-                                clipboardData: dt,
-                                bubbles: true,
-                                cancelable: true
-                            });
-                            v.contentDOM.dispatchEvent(pasteEvent);
-                            return;
-                        }
+                    } else if (navigator.clipboard && navigator.clipboard.readText) {
+                        plain = await navigator.clipboard.readText();
                     }
-                    const text = await navigator.clipboard.readText();
-                    if (text) {
+
+                    if (html || plain) {
                         const dt = new DataTransfer();
-                        dt.setData('text/plain', text);
+                        if (html) dt.setData('text/html', html);
+                        if (plain) dt.setData('text/plain', plain);
                         const pasteEvent = new ClipboardEvent('paste', {
                             clipboardData: dt,
                             bubbles: true,
                             cancelable: true
                         });
                         v.contentDOM.dispatchEvent(pasteEvent);
+
+                        // If no custom paste handler intercepted it, we manually insert the plain text.
+                        // Native paste won't do anything because the event is synthetic.
+                        if (!pasteEvent.defaultPrevented && plain) {
+                            v.dispatch(v.state.replaceSelection(plain), { userEvent: 'input.paste' });
+                        }
                     }
                 } catch (err) {
                     console.error('Failed to paste from clipboard via API:', err);
+                    showToast('Clipboard access denied. Please use Ctrl+V or Cmd+V to paste.', true);
                 }
             }
         },

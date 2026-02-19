@@ -17,74 +17,7 @@ import { isCursorInRange, isCursorInNodeLines } from '../../utils/cursor';
  * - Injects a copy-to-clipboard button on the top-right of closed blocks.
  */
 
-// ── Global toast CSS (injected once) ─────────────────────────────────────────
-// CM6 EditorView.theme() is scoped to the editor DOM, so we inject toast styles
-// globally via a <style> tag. This runs once when the module is first imported.
-(function injectToastStyles() {
-    if (document.getElementById('idz-toast-styles')) return;
-    const style = document.createElement('style');
-    style.id = 'idz-toast-styles';
-    style.textContent = `
-        .idz-toast {
-            position: fixed;
-            bottom: 1.5rem;
-            right: 1.5rem;
-            z-index: 9999;
-            background: #2b2b2b;
-            color: #dcddde;
-            border: 1px solid rgba(255,255,255,0.1);
-            border-radius: 8px;
-            padding: 0.6em 1.1em;
-            font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
-            font-size: 0.875rem;
-            box-shadow: 0 4px 20px rgba(0,0,0,0.5);
-            pointer-events: none;
-            opacity: 0;
-            transform: translateY(0.5rem);
-            transition: opacity 0.2s ease, transform 0.2s ease;
-        }
-        .idz-toast--visible {
-            opacity: 1;
-            transform: translateY(0);
-        }
-    `;
-    document.head.appendChild(style);
-})();
-
-let activeToast: HTMLElement | null = null;
-let toastTimeout: ReturnType<typeof setTimeout> | null = null;
-
-function showCopiedToast() {
-    // Remove any existing toast immediately
-    if (activeToast) {
-        activeToast.remove();
-        activeToast = null;
-    }
-    if (toastTimeout) {
-        clearTimeout(toastTimeout);
-        toastTimeout = null;
-    }
-
-    const toast = document.createElement('div');
-    toast.className = 'idz-toast';
-    toast.textContent = 'Copied to your clipboard';
-    document.body.appendChild(toast);
-    activeToast = toast;
-
-    // Trigger enter animation
-    requestAnimationFrame(() => {
-        requestAnimationFrame(() => {
-            toast.classList.add('idz-toast--visible');
-        });
-    });
-
-    toastTimeout = setTimeout(() => {
-        toast.classList.remove('idz-toast--visible');
-        toast.addEventListener('transitionend', () => toast.remove(), { once: true });
-        activeToast = null;
-        toastTimeout = null;
-    }, 2500);
-}
+import { showToast } from '../../utils/toast';
 
 // ── Copy button widget ────────────────────────────────────────────────────────
 
@@ -131,7 +64,7 @@ class CopyButtonWidget extends WidgetType {
 
         btn.addEventListener('click', () => {
             navigator.clipboard.writeText(this.codeText).then(() => {
-                showCopiedToast();
+                showToast('Copied to your clipboard');
             }).catch(() => {
                 // Fallback for older browsers
                 const ta = document.createElement('textarea');
@@ -142,7 +75,7 @@ class CopyButtonWidget extends WidgetType {
                 ta.select();
                 document.execCommand('copy');
                 ta.remove();
-                showCopiedToast();
+                showToast('Copied to your clipboard');
             });
         });
 
