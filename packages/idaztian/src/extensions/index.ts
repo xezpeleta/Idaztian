@@ -54,6 +54,7 @@ export function buildExtensions(config: IdaztianExtensionConfig): Extension[] {
 
 /**
  * Assembles interactive UI extensions (context menu, toolbar) from full config.
+ * (Deprecated: use contextMenuExtension and toolbarCompartment in editor.ts directly).
  */
 export function buildUIExtensions(config: IdaztianConfig): Extension[] {
     const extensions: Extension[] = [];
@@ -69,3 +70,7 @@ export function buildUIExtensions(config: IdaztianConfig): Extension[] {
 
     return extensions;
 }
+
+export { contextMenuExtension } from './context-menu';
+export { toolbarExtension, DEFAULT_TOOLBAR_ITEMS } from './toolbar';
+export type { ToolbarItemId } from './toolbar';

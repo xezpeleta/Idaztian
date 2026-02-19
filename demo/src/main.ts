@@ -212,6 +212,10 @@ document.getElementById('btn-download')!.addEventListener('click', () => {
     downloadFile(editor.getContent(), currentFilename);
 });
 
+document.getElementById('btn-toolbar')!.addEventListener('click', () => {
+    editor.toggleToolbar();
+});
+
 // ── Shortcuts modal ──────────────────────────────────────────────────────────
 
 const modal = document.getElementById('shortcuts-modal')!;

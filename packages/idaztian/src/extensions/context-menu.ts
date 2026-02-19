@@ -374,6 +374,15 @@ function buildEditorMenuItems(): MenuItem[] {
                 { label: 'Horizontal rule', action: cmdInsertHorizontalRule },
             ],
         },
+        {
+            label: 'View',
+            submenu: [
+                {
+                    label: 'Toggle Toolbar',
+                    action: (v) => { v.dom.dispatchEvent(new CustomEvent('idz-toggle-toolbar', { bubbles: true })); }
+                },
+            ],
+        },
         { separator: true, label: '' },
         {
             label: 'Cut',

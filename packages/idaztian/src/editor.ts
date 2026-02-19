@@ -5,7 +5,7 @@ import { languages } from '@codemirror/language-data';
 import { search } from '@codemirror/search';
 import { IdaztianConfig, DEFAULT_CONFIG } from './config';
 import { EventEmitter, IdaztianEventMap } from './events';
-import { buildExtensions, buildUIExtensions } from './extensions';
+import { buildExtensions, contextMenuExtension, toolbarExtension, DEFAULT_TOOLBAR_ITEMS, ToolbarItemId } from './extensions';
 import { shortcutsExtension } from './extensions/shortcuts';
 import { selectionWrapExtension } from './extensions/selection-wrap';
 import { ilunabarDark } from './theme/ilunabar-dark';
@@ -28,6 +28,7 @@ export class IdaztianEditor {
     private emitter: EventEmitter;
     private config: IdaztianConfig;
     private readOnlyCompartment = new Compartment();
+    private toolbarCompartment = new Compartment();
 
     constructor(config: IdaztianConfig) {
         this.config = { ...DEFAULT_CONFIG, ...config };
@@ -68,6 +69,9 @@ export class IdaztianEditor {
         this.view.dom.addEventListener('focus', () => this.emitter.emit('focus'));
         this.view.dom.addEventListener('blur', () => this.emitter.emit('blur'));
 
+        // Custom UI events
+        this.view.dom.addEventListener('idz-toggle-toolbar', () => this.toggleToolbar());
+
         // Add editor class for styling
         this.view.dom.classList.add('idz-editor');
 
@@ -103,8 +107,15 @@ export class IdaztianEditor {
             // Live-preview extensions
             ...buildExtensions(extConfig),
 
-            // Phase 2B: Context menu and toolbar
-            ...buildUIExtensions(cfg),
+            // Context menu
+            ...(cfg.contextMenu !== false ? [contextMenuExtension()] : []),
+
+            // Toolbar
+            this.toolbarCompartment.of(
+                cfg.toolbar
+                    ? toolbarExtension((cfg.toolbarItems as ToolbarItemId[] | undefined) ?? DEFAULT_TOOLBAR_ITEMS)
+                    : []
+            ),
 
             // Selection wrap: typing format chars wraps selected text
             selectionWrapExtension(),
@@ -178,6 +189,22 @@ export class IdaztianEditor {
                 EditorState.readOnly.of(readOnly)
             ),
         });
+    }
+
+    setToolbar(show: boolean): void {
+        if (this.config.toolbar === show) return;
+        this.config.toolbar = show;
+        this.view.dispatch({
+            effects: this.toolbarCompartment.reconfigure(
+                show
+                    ? toolbarExtension((this.config.toolbarItems as ToolbarItemId[] | undefined) ?? DEFAULT_TOOLBAR_ITEMS)
+                    : []
+            ),
+        });
+    }
+
+    toggleToolbar(): void {
+        this.setToolbar(!this.config.toolbar);
     }
 
     // ── History ──────────────────────────────────────────────────────────
