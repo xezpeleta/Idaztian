@@ -1,5 +1,6 @@
 import { EditorView } from '@codemirror/view';
 import { Extension } from '@codemirror/state';
+import { syntaxTree } from '@codemirror/language';
 import {
     cmdBold, cmdItalic, cmdCode, cmdStrikethrough, cmdLink,
     cmdHeading, cmdBulletList, cmdOrderedList, cmdTaskList, cmdBlockquote,
@@ -633,6 +634,29 @@ export function contextMenuExtension(): Extension {
 
     return EditorView.domEventHandlers({
         contextmenu(event, view) {
+            const target = event.target as HTMLElement;
+            let isLink = !!(target?.closest?.('.idz-link') || target?.closest?.('.idz-link-syntax'));
+
+            if (!isLink) {
+                const pos = view.posAtCoords({ x: event.clientX, y: event.clientY });
+                if (pos !== null) {
+                    let node: any = syntaxTree(view.state).resolveInner(pos, 1);
+                    while (node) {
+                        if (node.name === 'Link') {
+                            isLink = true;
+                            break;
+                        }
+                        node = node.parent;
+                    }
+                }
+            }
+
+            if (isLink) {
+                // Do not show the custom menu, nor the native one
+                event.preventDefault();
+                return true;
+            }
+
             event.preventDefault();
             closeActiveMenu();
 
