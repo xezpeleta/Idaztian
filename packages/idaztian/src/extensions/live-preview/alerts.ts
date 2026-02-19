@@ -1,5 +1,5 @@
-import { Range } from '@codemirror/state';
-import { Decoration, DecorationSet, EditorView, ViewPlugin, ViewUpdate, WidgetType } from '@codemirror/view';
+import { Range, StateField, EditorState } from '@codemirror/state';
+import { Decoration, DecorationSet, EditorView, WidgetType, keymap } from '@codemirror/view';
 import { syntaxTree } from '@codemirror/language';
 import { isCursorInNodeLines } from '../../utils/cursor';
 
@@ -37,16 +37,22 @@ const ALERT_CONFIG: Record<AlertType, { label: string; cssClass: string }> = {
 class AlertHeaderWidget extends WidgetType {
     constructor(
         private readonly type: AlertType,
+        private readonly isFirst: boolean,
+        private readonly from: number,
     ) { super(); }
 
     eq(other: AlertHeaderWidget): boolean {
-        return other.type === this.type;
+        return other.type === this.type && other.isFirst === this.isFirst && other.from === this.from;
     }
 
-    toDOM(): HTMLElement {
+    toDOM(view: EditorView): HTMLElement {
         const cfg = ALERT_CONFIG[this.type];
         const div = document.createElement('div');
-        div.className = `idz-alert-header idz-alert-header-${this.type.toLowerCase()}`;
+
+        // Combine classes: header base + generic line styles + type specific style
+        let classes = `idz-alert-header idz-alert-line ${cfg.cssClass}`;
+        if (this.isFirst) classes += ' idz-alert-first';
+        div.className = classes;
 
         const icon = document.createElement('span');
         icon.className = 'idz-alert-icon';
@@ -59,52 +65,97 @@ class AlertHeaderWidget extends WidgetType {
 
         div.appendChild(icon);
         div.appendChild(label);
+
+        // Handle click to reveal the underlying text
+        div.addEventListener('mousedown', (e) => {
+            // Prevent default browser selection of the widget
+            e.preventDefault();
+            // Ensure editor has focus
+            view.focus();
+
+            // Try to find the exact position based on click coordinates
+            const pos = view.posAtCoords({ x: e.clientX, y: e.clientY }, false);
+            const anchor = pos !== null ? pos : this.from;
+
+            // Set cursor to the calculated position
+            view.dispatch({
+                selection: { anchor },
+                scrollIntoView: true
+            });
+        });
+
         return div;
     }
 
     ignoreEvent(): boolean { return true; }
 }
 
-function buildAlertDecorations(view: EditorView): DecorationSet {
+const alertStateField = StateField.define<DecorationSet>({
+    create(state) {
+        return buildAlertDecorations(state);
+    },
+    update(decorations, tr) {
+        if (tr.docChanged || tr.selection) {
+            return buildAlertDecorations(tr.state);
+        }
+        return decorations.map(tr.changes);
+    },
+    provide: (field) => EditorView.decorations.from(field),
+});
+
+function buildAlertDecorations(state: EditorState): DecorationSet {
     const decorations: Range<Decoration>[] = [];
-    const state = view.state;
 
-    for (const { from, to } of view.visibleRanges) {
-        syntaxTree(state).iterate({
-            from,
-            to,
-            enter(node) {
-                if (node.name !== 'Blockquote') return;
+    syntaxTree(state).iterate({
+        enter(node) {
+            if (node.name !== 'Blockquote') return;
 
-                // Check first line for [!TYPE] pattern
-                const firstLine = state.doc.lineAt(node.from);
-                const firstLineText = firstLine.text;
-                const alertMatch = firstLineText.match(/^\s*>\s*\[!(NOTE|TIP|IMPORTANT|WARNING|CAUTION)\]/i);
-                if (!alertMatch) return;
+            // Check first line for [!TYPE] pattern
+            const firstLine = state.doc.lineAt(node.from);
+            const firstLineText = firstLine.text;
+            const alertMatch = firstLineText.match(/^\s*>\s*\[!(NOTE|TIP|IMPORTANT|WARNING|CAUTION)\]/i);
+            if (!alertMatch) return;
 
-                const alertType = alertMatch[1].toUpperCase() as AlertType;
-                const cfg = ALERT_CONFIG[alertType];
-                const cursorOnBlock = isCursorInNodeLines(state, node.from, node.to);
+            const alertType = alertMatch[1].toUpperCase() as AlertType;
+            const cfg = ALERT_CONFIG[alertType];
+            const cursorOnBlock = isCursorInNodeLines(state, node.from, node.to);
 
-                // Collect all lines first so we know which is last
-                const lines: Array<{ from: number; to: number; text: string }> = [];
-                let pos = node.from;
-                while (pos <= node.to) {
-                    const line = state.doc.lineAt(pos);
-                    if (line.from > node.to) break;
-                    lines.push({ from: line.from, to: line.to, text: line.text });
-                    pos = line.to + 1;
-                }
+            // Collect all lines first
+            const lines: Array<{ from: number; to: number; text: string }> = [];
+            let pos = node.from;
+            while (pos <= node.to) {
+                const line = state.doc.lineAt(pos);
+                if (line.from > node.to) break;
+                lines.push({ from: line.from, to: line.to, text: line.text });
+                pos = line.to + 1;
+            }
 
-                for (let i = 0; i < lines.length; i++) {
-                    const line = lines[i];
-                    const isFirst = i === 0;
-                    const isLast = i === lines.length - 1;
+            for (let i = 0; i < lines.length; i++) {
+                const line = lines[i];
+                const isFirst = i === 0;
+                const isLast = i === lines.length - 1;
 
-                    const markerMatch = line.text.match(/^(\s*>+\s?)/);
-                    const markerEnd = markerMatch ? line.from + markerMatch[0].length : line.from;
+                const markerMatch = line.text.match(/^(\s*>+\s?)/);
+                const markerEnd = markerMatch ? line.from + markerMatch[0].length : line.from;
 
-                    // Build line class list
+                // Determine if we are in "Header Widget Mode"
+                const showHeaderWidget = isFirst && !cursorOnBlock;
+
+                if (showHeaderWidget) {
+                    // Line wrapper should be hidden/collapsed logic
+                    decorations.push(
+                        Decoration.line({ class: 'idz-alert-header-row' }).range(line.from, line.from)
+                    );
+                    // Block widget
+                    decorations.push(
+                        Decoration.replace({
+                            widget: new AlertHeaderWidget(alertType, true, line.from),
+                            block: true,
+                            side: -1
+                        }).range(line.from, line.to)
+                    );
+                } else {
+                    // Standard line styling (raw text or content lines)
                     let lineClass = `idz-alert-line ${cfg.cssClass}`;
                     if (isFirst) lineClass += ' idz-alert-first';
                     if (isLast) lineClass += ' idz-alert-last';
@@ -114,23 +165,14 @@ function buildAlertDecorations(view: EditorView): DecorationSet {
                     );
 
                     if (isFirst) {
-                        if (!cursorOnBlock) {
-                            // Replace the entire first line ("> [!NOTE]") with the header widget
-                            decorations.push(
-                                Decoration.replace({
-                                    widget: new AlertHeaderWidget(alertType),
-                                    block: false,
-                                }).range(line.from, line.to)
-                            );
-                        } else {
-                            // Show raw syntax, style the marker
-                            decorations.push(
-                                Decoration.mark({ class: 'idz-marker' }).range(line.from, markerEnd)
-                            );
-                            decorations.push(
-                                Decoration.mark({ class: 'idz-alert-type-syntax' }).range(markerEnd, line.to)
-                            );
-                        }
+                        // Must be cursorOnBlock here
+                        // Show raw syntax, style the marker
+                        decorations.push(
+                            Decoration.mark({ class: 'idz-marker' }).range(line.from, markerEnd)
+                        );
+                        decorations.push(
+                            Decoration.mark({ class: 'idz-alert-type-syntax' }).range(markerEnd, line.to)
+                        );
                     } else {
                         if (!cursorOnBlock) {
                             // Hide the `> ` prefix on content lines
@@ -149,33 +191,60 @@ function buildAlertDecorations(view: EditorView): DecorationSet {
                         }
                     }
                 }
+            }
+        },
+    });
 
-                return false; // Don't descend into blockquote children
-            },
-        });
-    }
-
-    decorations.sort((a, b) => a.from - b.from || a.value.startSide - b.value.startSide);
     return Decoration.set(decorations, true);
 }
 
-const alertsPlugin = ViewPlugin.fromClass(
-    class {
-        decorations: DecorationSet;
+export const alertNavigationKeymap = keymap.of([
+    {
+        key: 'ArrowDown',
+        run: (view) => {
+            const { state } = view;
+            const head = state.selection.main.head;
+            const currentLine = state.doc.lineAt(head);
 
-        constructor(view: EditorView) {
-            this.decorations = buildAlertDecorations(view);
-        }
+            if (currentLine.number >= state.doc.lines) return false;
 
-        update(update: ViewUpdate) {
-            if (update.docChanged || update.selectionSet || update.viewportChanged) {
-                this.decorations = buildAlertDecorations(update.view);
+            const nextLine = state.doc.line(currentLine.number + 1);
+
+            // Check if next line is a callout header (matches > [!TYPE])
+            if (nextLine.text.match(/^\s*>\s*\[!(NOTE|TIP|IMPORTANT|WARNING|CAUTION)\]/i)) {
+                view.dispatch({
+                    selection: { anchor: nextLine.from },
+                    scrollIntoView: true
+                });
+                return true;
             }
-        }
+            return false;
+        },
     },
-    { decorations: (v) => v.decorations }
-);
+    {
+        key: 'ArrowUp',
+        run: (view) => {
+            const { state } = view;
+            const head = state.selection.main.head;
+            const currentLine = state.doc.lineAt(head);
+
+            if (currentLine.number <= 1) return false;
+
+            const prevLine = state.doc.line(currentLine.number - 1);
+
+            // Check if prev line is a callout header
+            if (prevLine.text.match(/^\s*>\s*\[!(NOTE|TIP|IMPORTANT|WARNING|CAUTION)\]/i)) {
+                view.dispatch({
+                    selection: { anchor: prevLine.from },
+                    scrollIntoView: true
+                });
+                return true;
+            }
+            return false;
+        },
+    },
+]);
 
 export function alertsExtension() {
-    return [alertsPlugin];
+    return [alertStateField, alertNavigationKeymap];
 }

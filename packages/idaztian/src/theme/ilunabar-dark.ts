@@ -343,16 +343,17 @@ export const ilunabarDarkTheme = EditorView.theme(
             borderTopLeftRadius: '6px',
             borderTopRightRadius: '6px',
             paddingTop: '0.55em',
-            marginTop: '0.85em',
         },
         '.idz-alert-last': {
             borderBottomLeftRadius: '6px',
             borderBottomRightRadius: '6px',
             paddingBottom: '0.55em',
-            marginBottom: '0.85em',
+        },
+        '.idz-alert-header-row': {
+            display: 'none',
         },
         '.idz-alert-header': {
-            display: 'inline-flex',
+            display: 'flex',
             alignItems: 'center',
             gap: '0.45em',
             fontWeight: '600',
