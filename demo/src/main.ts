@@ -1,9 +1,6 @@
 import { IdaztianEditor } from 'idaztian';
 import { openFile, downloadFile } from './file-handler';
 import { saveContent, loadContent } from './local-storage';
-import '@fontsource/inter/400.css';
-import '@fontsource/inter/500.css';
-import '@fontsource/inter/600.css';
 
 // ── Sample content ──────────────────────────────────────────────────────────
 
