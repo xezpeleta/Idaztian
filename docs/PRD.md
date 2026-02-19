@@ -732,14 +732,14 @@ import { IdaztianEditor } from 'idaztian';
 
 ### Phase 2 — Full Spec (v0.5)
 
-- [ ] Remaining live-preview extensions: tables, images, math, alerts, footnotes, task lists
-- [ ] Table interaction (always-rendered, hover +row/+column handles)
-- [ ] Context menu (right-click with Format/Paragraph/Insert submenus)
-- [ ] Toolbar component
+- [x] Remaining live-preview extensions: tables, images, math, alerts, footnotes, task lists
+- [x] Table interaction (always-rendered, hover +row/+column handles)
+- [x] Context menu (right-click with Format/Paragraph/Insert submenus)
+- [x] Toolbar component
 - [ ] Find & Replace
-- [ ] Smart pairs and indent
-- [ ] Word/character count
-- [ ] Paste handling (HTML → markdown, image paste)
+- [x] Smart pairs and indent
+- [x] Word/character count
+- [x] Paste handling (HTML → markdown, image paste)
 - [ ] Drag & drop support
 
 ### Phase 3 — Polish (v1.0)
