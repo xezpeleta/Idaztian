@@ -1,6 +1,6 @@
 # Idaztian Framework
 
-> **Idaztian** — *"writing"* in Basque
+> **_When you write_**, ideas flow faster, notes stay organized, and your mind stays clear.
 
 An open-source JavaScript framework that provides an Obsidian-style **live-preview markdown editor** for the web. Renders markdown formatting inline as you type — hiding raw syntax unless your cursor is on the formatted element.
 
