@@ -54,11 +54,22 @@ class MathWidget extends WidgetType {
         return other.latex === this.latex && other.displayMode === this.displayMode;
     }
 
-    toDOM(): HTMLElement {
+    toDOM(view: EditorView): HTMLElement {
         const el = this.displayMode
             ? document.createElement('div')
             : document.createElement('span');
         el.className = this.displayMode ? 'idz-math-block' : 'idz-math-inline';
+
+        el.addEventListener('mousedown', (e) => {
+            if (e.button === 0) {
+                const pos = view.posAtDOM(el);
+                if (pos !== null) {
+                    e.preventDefault();
+                    view.dispatch({ selection: { anchor: pos } });
+                    view.focus();
+                }
+            }
+        });
 
         if (this.rendered) {
             el.innerHTML = this.rendered;
@@ -84,7 +95,14 @@ class MathWidget extends WidgetType {
         return el;
     }
 
-    ignoreEvent(): boolean { return true; }
+    ignoreEvent(event: Event): boolean {
+        // Let CodeMirror handle mouse/pointer events so it can set the cursor,
+        // which toggles the live-preview off.
+        if (event.type.startsWith('mouse') || event.type.startsWith('touch') || event.type.startsWith('pointer')) {
+            return false;
+        }
+        return true;
+    }
 }
 
 // Regex patterns for math delimiters
