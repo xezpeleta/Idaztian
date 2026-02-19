@@ -126,6 +126,135 @@ function continueListCommand(
     return false;
 }
 
+/**
+ * On Enter inside a blockquote, continue the `> ` prefix.
+ * Also handles lists nested inside blockquotes (bullet, ordered, task).
+ * Empty marker → layered exit: first exit list (stay in quote), then exit quote.
+ * Returns false when not on a blockquote line.
+ */
+function continueBlockquoteCommand(
+    view: { state: EditorState; dispatch: (tr: Transaction) => void }
+): boolean {
+    const state = view.state;
+    const { head } = state.selection.main;
+    const line = state.doc.lineAt(head);
+    const text = line.text;
+
+    const quoteMatch = text.match(/^((?:\s*>\s?)+)(.*)/);
+    if (!quoteMatch) return false;
+
+    const rawPrefix = quoteMatch[1];
+    const afterQuote = quoteMatch[2];
+    const prefix = rawPrefix.endsWith(' ') ? rawPrefix : rawPrefix + ' ';
+
+    // Task list inside blockquote: > - [ ] text
+    const taskMatch = afterQuote.match(/^(\s*)([-*+])\s+\[([ xX])\]\s?(.*)$/);
+    if (taskMatch) {
+        const [, indent, marker, , content] = taskMatch;
+        if (!content.trim()) {
+            view.dispatch(state.update({
+                changes: { from: line.from, to: line.to, insert: prefix },
+                selection: { anchor: line.from + prefix.length },
+                userEvent: 'input',
+            }));
+            return true;
+        }
+        const insert = `\n${prefix}${indent}${marker} [ ] `;
+        view.dispatch(state.update({
+            changes: { from: head, to: head, insert },
+            selection: { anchor: head + insert.length },
+            userEvent: 'input',
+        }));
+        return true;
+    }
+
+    // Bullet list inside blockquote: > - text
+    const bulletMatch = afterQuote.match(/^(\s*)([-*+])\s(.*)$/);
+    if (bulletMatch) {
+        const [, indent, marker, content] = bulletMatch;
+        if (!content.trim()) {
+            view.dispatch(state.update({
+                changes: { from: line.from, to: line.to, insert: prefix },
+                selection: { anchor: line.from + prefix.length },
+                userEvent: 'input',
+            }));
+            return true;
+        }
+        const insert = `\n${prefix}${indent}${marker} `;
+        view.dispatch(state.update({
+            changes: { from: head, to: head, insert },
+            selection: { anchor: head + insert.length },
+            userEvent: 'input',
+        }));
+        return true;
+    }
+
+    // Ordered list inside blockquote: > 1. text
+    const orderedMatch = afterQuote.match(/^(\s*)(\d+)\.\s(.*)$/);
+    if (orderedMatch) {
+        const [, indent, numStr, content] = orderedMatch;
+        if (!content.trim()) {
+            view.dispatch(state.update({
+                changes: { from: line.from, to: line.to, insert: prefix },
+                selection: { anchor: line.from + prefix.length },
+                userEvent: 'input',
+            }));
+            return true;
+        }
+        const num = parseInt(numStr, 10);
+        const insert = `\n${prefix}${indent}${num + 1}. `;
+        view.dispatch(state.update({
+            changes: { from: head, to: head, insert },
+            selection: { anchor: head + insert.length },
+            userEvent: 'input',
+        }));
+        return true;
+    }
+
+    // Plain blockquote: empty → exit, otherwise continue
+    if (!afterQuote.trim()) {
+        view.dispatch(state.update({
+            changes: { from: line.from, to: line.to, insert: '' },
+            selection: { anchor: line.from },
+            userEvent: 'input',
+        }));
+        return true;
+    }
+
+    const insert = `\n${prefix}`;
+    view.dispatch(state.update({
+        changes: { from: head, to: head, insert },
+        selection: { anchor: head + insert.length },
+        userEvent: 'input',
+    }));
+    return true;
+}
+
+/**
+ * Shift+Enter: force-continue the blockquote prefix without exiting.
+ */
+function forceContBlockquoteCommand(
+    view: { state: EditorState; dispatch: (tr: Transaction) => void }
+): boolean {
+    const state = view.state;
+    const { head } = state.selection.main;
+    const line = state.doc.lineAt(head);
+
+    const quoteMatch = line.text.match(/^((?:\s*>\s?)+)/);
+    if (!quoteMatch) return false;
+
+    const rawPrefix = quoteMatch[1];
+    const prefix = rawPrefix.endsWith(' ') ? rawPrefix : rawPrefix + ' ';
+
+    const insert = `\n${prefix}`;
+    view.dispatch(state.update({
+        changes: { from: head, to: head, insert },
+        selection: { anchor: head + insert.length },
+        userEvent: 'input',
+    }));
+    return true;
+}
+
 export function shortcutsExtension(onSave?: (content: string) => void) {
     return [
         history(),
@@ -197,8 +326,11 @@ export function shortcutsExtension(onSave?: (content: string) => void) {
             },
             // Tab for indentation
             indentWithTab,
-            // Enter: continue list items (bullet, ordered, task)
+            // Enter: continue list items, then blockquotes
             { key: 'Enter', run: continueListCommand },
+            { key: 'Enter', run: continueBlockquoteCommand },
+            // Shift+Enter: force-continue blockquote (never exit)
+            { key: 'Shift-Enter', run: forceContBlockquoteCommand },
             ...defaultKeymap,
             ...historyKeymap,
             ...searchKeymap,
