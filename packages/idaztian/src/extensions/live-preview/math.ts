@@ -132,6 +132,13 @@ function buildBlockDecorations(state: EditorView['state']): DecorationSet {
             decorations.push(
                 Decoration.mark({ class: 'idz-math-syntax' }).range(from, to)
             );
+            const innerStart = from + 2;
+            const innerEnd = to - 2;
+            if (innerEnd > innerStart) {
+                decorations.push(
+                    Decoration.mark({ class: 'idz-math-active' }).range(innerStart, innerEnd)
+                );
+            }
         }
     }
 
@@ -190,7 +197,7 @@ function buildInlineDecorations(view: EditorView): DecorationSet {
             );
         } else {
             decorations.push(
-                Decoration.mark({ class: 'idz-math-syntax' }).range(from, to)
+                Decoration.mark({ class: 'idz-math-syntax idz-math-active' }).range(from, to)
             );
         }
     }
