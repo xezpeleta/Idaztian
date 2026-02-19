@@ -332,9 +332,9 @@ export const ilunabarDarkTheme = EditorView.theme(
 
         // ── Alerts / Callouts ────────────────────────────────────────────────
         '.idz-alert-line': {
-            paddingLeft: '1.1em',
-            paddingRight: '1em',
-            borderLeft: '3px solid',
+            paddingLeft: '1.5em',
+            paddingRight: '1.5em',
+            borderLeft: '4px solid',
             margin: '0',
             color: colors.text,
             fontStyle: 'normal',
@@ -342,12 +342,12 @@ export const ilunabarDarkTheme = EditorView.theme(
         '.idz-alert-first': {
             borderTopLeftRadius: '6px',
             borderTopRightRadius: '6px',
-            paddingTop: '0.55em',
+            paddingTop: '1em',
         },
         '.idz-alert-last': {
             borderBottomLeftRadius: '6px',
             borderBottomRightRadius: '6px',
-            paddingBottom: '0.55em',
+            paddingBottom: '1em',
         },
         '.idz-alert-header-row': {
             display: 'none',
@@ -356,10 +356,11 @@ export const ilunabarDarkTheme = EditorView.theme(
             display: 'flex',
             alignItems: 'center',
             gap: '0.45em',
-            fontWeight: '600',
+            fontWeight: 'bold',
             fontStyle: 'normal',
-            fontSize: '0.9em',
+            fontSize: '1em',
             lineHeight: '1',
+            paddingBottom: '0.8em',
         },
         '.idz-alert-icon': {
             display: 'inline-flex',
