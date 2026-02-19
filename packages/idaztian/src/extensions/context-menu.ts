@@ -170,18 +170,18 @@ function registerGlobalCloseListeners(): void {
 // ── SVG icons ──────────────────────────────────────────────────────────────
 
 const ICONS = {
-    rowAbove:   '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 19V5M5 12l7-7 7 7"/></svg>',
-    rowBelow:   '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 5v14M5 12l7 7 7-7"/></svg>',
-    moveUp:     '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 19V5M5 12l7-7 7 7"/></svg>',
-    moveDown:   '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 5v14M5 12l7 7 7-7"/></svg>',
-    duplicate:  '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="9" y="9" width="13" height="13" rx="2"/><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/></svg>',
-    trash:      '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="3 6 5 6 21 6"/><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a1 1 0 0 1 1-1h4a1 1 0 0 1 1 1v2"/></svg>',
-    colLeft:    '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M19 12H5M12 5l-7 7 7 7"/></svg>',
-    colRight:   '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M5 12h14M12 5l7 7-7 7"/></svg>',
-    sortAZ:     '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="3" y1="6" x2="21" y2="6"/><line x1="3" y1="12" x2="15" y2="12"/><line x1="3" y1="18" x2="9" y2="18"/><polyline points="15 15 18 21 21 15"/></svg>',
-    sortZA:     '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="3" y1="6" x2="9" y2="6"/><line x1="3" y1="12" x2="15" y2="12"/><line x1="3" y1="18" x2="21" y2="18"/><polyline points="15 9 18 3 21 9"/></svg>',
-    rows:       '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="18" height="18" rx="2"/><line x1="3" y1="9" x2="21" y2="9"/><line x1="3" y1="15" x2="21" y2="15"/></svg>',
-    cols:       '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="18" height="18" rx="2"/><line x1="9" y1="3" x2="9" y2="21"/><line x1="15" y1="3" x2="15" y2="21"/></svg>',
+    rowAbove: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 19V5M5 12l7-7 7 7"/></svg>',
+    rowBelow: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 5v14M5 12l7 7 7-7"/></svg>',
+    moveUp: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 19V5M5 12l7-7 7 7"/></svg>',
+    moveDown: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 5v14M5 12l7 7 7-7"/></svg>',
+    duplicate: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="9" y="9" width="13" height="13" rx="2"/><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/></svg>',
+    trash: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="3 6 5 6 21 6"/><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a1 1 0 0 1 1-1h4a1 1 0 0 1 1 1v2"/></svg>',
+    colLeft: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M19 12H5M12 5l-7 7 7 7"/></svg>',
+    colRight: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M5 12h14M12 5l7 7-7 7"/></svg>',
+    sortAZ: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="3" y1="6" x2="21" y2="6"/><line x1="3" y1="12" x2="15" y2="12"/><line x1="3" y1="18" x2="9" y2="18"/><polyline points="15 15 18 21 21 15"/></svg>',
+    sortZA: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="3" y1="6" x2="9" y2="6"/><line x1="3" y1="12" x2="15" y2="12"/><line x1="3" y1="18" x2="21" y2="18"/><polyline points="15 9 18 3 21 9"/></svg>',
+    rows: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="18" height="18" rx="2"/><line x1="3" y1="9" x2="21" y2="9"/><line x1="3" y1="15" x2="21" y2="15"/></svg>',
+    cols: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="18" height="18" rx="2"/><line x1="9" y1="3" x2="9" y2="21"/><line x1="15" y1="3" x2="15" y2="21"/></svg>',
 };
 
 // ── MenuItem interface (exported for external use) ─────────────────────────
@@ -279,9 +279,8 @@ export function createMenuDom(
             const action = item.action;
             li.addEventListener('click', () => {
                 closeAll();
-                requestAnimationFrame(() => {
-                    action(view);
-                });
+                // Run synchronously so document.execCommand can utilize the user gesture token
+                action(view);
             });
         }
 
@@ -356,9 +355,84 @@ function buildEditorMenuItems(): MenuItem[] {
             ],
         },
         { separator: true, label: '' },
-        { label: 'Cut', shortcut: 'Ctrl+X', action: () => document.execCommand('cut') },
-        { label: 'Copy', shortcut: 'Ctrl+C', action: () => document.execCommand('copy') },
-        { label: 'Paste', shortcut: 'Ctrl+V', action: () => document.execCommand('paste') },
+        {
+            label: 'Cut',
+            shortcut: 'Ctrl+X',
+            action: (v) => {
+                v.focus();
+                if (!document.execCommand('cut')) {
+                    const text = v.state.sliceDoc(v.state.selection.main.from, v.state.selection.main.to);
+                    if (text && navigator.clipboard) {
+                        navigator.clipboard.writeText(text).then(() => {
+                            v.dispatch(v.state.replaceSelection(''));
+                        });
+                    }
+                }
+            }
+        },
+        {
+            label: 'Copy',
+            shortcut: 'Ctrl+C',
+            action: (v) => {
+                v.focus();
+                if (!document.execCommand('copy')) {
+                    const text = v.state.sliceDoc(v.state.selection.main.from, v.state.selection.main.to);
+                    if (text && navigator.clipboard) {
+                        navigator.clipboard.writeText(text);
+                    }
+                }
+            }
+        },
+        {
+            label: 'Paste',
+            shortcut: 'Ctrl+V',
+            action: async (v) => {
+                v.focus();
+                if (document.execCommand('paste')) return;
+
+                try {
+                    if (navigator.clipboard && navigator.clipboard.read) {
+                        const items = await navigator.clipboard.read();
+                        let html = '', plain = '';
+                        for (const item of items) {
+                            if (item.types.includes('text/html')) {
+                                const blob = await item.getType('text/html');
+                                html = await blob.text();
+                            }
+                            if (item.types.includes('text/plain')) {
+                                const blob = await item.getType('text/plain');
+                                plain = await blob.text();
+                            }
+                        }
+                        if (html || plain) {
+                            const dt = new DataTransfer();
+                            if (html) dt.setData('text/html', html);
+                            if (plain) dt.setData('text/plain', plain);
+                            const pasteEvent = new ClipboardEvent('paste', {
+                                clipboardData: dt,
+                                bubbles: true,
+                                cancelable: true
+                            });
+                            v.contentDOM.dispatchEvent(pasteEvent);
+                            return;
+                        }
+                    }
+                    const text = await navigator.clipboard.readText();
+                    if (text) {
+                        const dt = new DataTransfer();
+                        dt.setData('text/plain', text);
+                        const pasteEvent = new ClipboardEvent('paste', {
+                            clipboardData: dt,
+                            bubbles: true,
+                            cancelable: true
+                        });
+                        v.contentDOM.dispatchEvent(pasteEvent);
+                    }
+                } catch (err) {
+                    console.error('Failed to paste from clipboard via API:', err);
+                }
+            }
+        },
         {
             label: 'Select all',
             shortcut: 'Ctrl+A',
