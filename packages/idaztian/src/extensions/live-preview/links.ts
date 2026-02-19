@@ -95,7 +95,6 @@ function buildLinkDecorations(view: EditorView): DecorationSet {
                     // Find positions of [ ] ( )
                     const openBracket = node.from; // [
                     const closeBracket = raw.indexOf(']');
-                    const openParen = closeBracket + 1; // (
                     const closeParen = raw.length - 1; // )
 
                     if (!cursorOn) {
@@ -104,11 +103,20 @@ function buildLinkDecorations(view: EditorView): DecorationSet {
                             Decoration.replace({}).range(openBracket, openBracket + 1)
                         );
                         decorations.push(
-                            Decoration.replace({}).range(node.from + openParen, node.from + closeParen + 1)
+                            // Include the closing bracket `]` in the replacement range
+                            Decoration.replace({}).range(node.from + closeBracket, node.from + closeParen + 1)
                         );
-                        // Style the link text
+                        // Style the link text as an anchor
                         decorations.push(
-                            Decoration.mark({ class: 'idz-link' }).range(
+                            Decoration.mark({
+                                tagName: 'a',
+                                class: 'idz-link',
+                                attributes: {
+                                    href: match[2],
+                                    target: '_blank',
+                                    rel: 'noopener noreferrer'
+                                }
+                            }).range(
                                 openBracket + 1,
                                 node.from + closeBracket
                             )
@@ -147,5 +155,25 @@ const linksPlugin = ViewPlugin.fromClass(
 );
 
 export function linksExtension() {
-    return [linksPlugin];
+    return [
+        linksPlugin,
+        EditorView.domEventHandlers({
+            mousedown(event) {
+                // Only handle left clicks
+                if (event.button === 0) {
+                    const target = event.target as HTMLElement;
+                    const link = target.closest('a.idz-link');
+                    if (link) {
+                        event.preventDefault(); // Prevent CM from moving cursor
+                        const href = link.getAttribute('href');
+                        if (href) {
+                            window.open(href, link.getAttribute('target') || '_self');
+                        }
+                        return true;
+                    }
+                }
+                return false;
+            }
+        })
+    ];
 }
