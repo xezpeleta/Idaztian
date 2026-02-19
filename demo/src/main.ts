@@ -1,6 +1,9 @@
 import { IdaztianEditor } from 'idaztian';
 import { openFile, downloadFile } from './file-handler';
 import { saveContent, loadContent } from './local-storage';
+import '@fontsource/inter/400.css';
+import '@fontsource/inter/500.css';
+import '@fontsource/inter/600.css';
 
 // ── Sample content ──────────────────────────────────────────────────────────
 
@@ -22,11 +25,11 @@ Here is a [link to the Idaztian repository](https://github.com/xezpeleta/idaztia
 
 Image with alt text (move cursor away to see it rendered):
 
-![A scenic mountain landscape](https://picsum.photos/seed/idaztian/800/400)
+![A scenic mountain landscape](/sample.jpg)
 
 Broken images show the alt text and an error indicator:
 
-![This image does not exist](https://example.com/nonexistent.png)
+![This image does not exist](/nonexistent.png)
 
 ### Lists
 

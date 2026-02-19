@@ -1,6 +1,7 @@
 import { Range, StateField } from '@codemirror/state';
 import { Decoration, DecorationSet, EditorView, ViewPlugin, ViewUpdate, WidgetType } from '@codemirror/view';
 import { isCursorInRange } from '../../utils/cursor';
+import 'katex/dist/katex.min.css';
 
 /**
  * Live-preview extension for math / LaTeX.
@@ -25,15 +26,7 @@ import { isCursorInRange } from '../../utils/cursor';
 let katexPromise: Promise<typeof import('katex')> | null = null;
 function loadKatex(): Promise<typeof import('katex')> {
     if (!katexPromise) {
-        katexPromise = import('katex').then(async (mod) => {
-            // Also inject KaTeX CSS if not already present
-            if (!document.getElementById('idz-katex-css')) {
-                const link = document.createElement('link');
-                link.id = 'idz-katex-css';
-                link.rel = 'stylesheet';
-                link.href = 'https://cdn.jsdelivr.net/npm/katex@0.16.11/dist/katex.min.css';
-                document.head.appendChild(link);
-            }
+        katexPromise = import('katex').then((mod) => {
             return mod;
         });
     }
