@@ -67,9 +67,9 @@ Explore our integration examples to see how effortlessly the framework drops int
 - 🏎️ **[Simple Editor (Vite + TypeScript)](https://xezpeleta.github.io/Idaztian/examples/simple-editor/)**: A minimal, lightweight integration showing how to quickly load up Idaztian in modern toolchains. (Source: [`examples/simple-editor`](examples/simple-editor))
 - 📄 **[Pure HTML Editor](https://xezpeleta.github.io/Idaztian/examples/html-editor/)**: Zero build tools required. Shows how to embed Idaztian using static files or a CDN. (Source: [`examples/html-editor`](examples/html-editor))
 
-## Documentation
+## API Documentation
 
-See [`docs/PRD.md`](docs/PRD.md) for the full Product Requirements Document.
+See [API Documentation](https://xezpeleta.github.io/Idaztian/docs/) for detailed information about the API.
 
 ## License
 
