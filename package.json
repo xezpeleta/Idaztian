@@ -8,7 +8,7 @@
   ],
   "scripts": {
     "dev": "npm run dev --workspace=idatz",
-    "build": "npm run build --workspace=packages/idaztian && npm run build --workspace=idatz",
+    "build": "npm run build --workspace=packages/idaztian && npm run build --workspace=idatz && npm run build --workspace=examples/simple-editor",
     "build:lib": "npm run build --workspace=packages/idaztian",
     "test": "npm run test --workspace=packages/idaztian",
     "lint": "tsc --noEmit"
