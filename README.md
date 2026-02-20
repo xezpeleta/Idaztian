@@ -84,4 +84,4 @@ See [API Documentation](https://xezpeleta.github.io/Idaztian/docs/) for detailed
 
 ## License
 
-[GPL-3.0](LICENSE) © Idaztian Contributors
+[GPL-3.0](LICENSE) © Xabi Ezpeleta
