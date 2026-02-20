@@ -742,19 +742,28 @@ import { IdaztianEditor } from 'idaztian';
 - [x] Paste handling (HTML → markdown, image paste)
 - [ ] Drag & drop support
 
+### Phase 2.5 — Framework Configuration & Examples (v0.6) ✅
+
+- [x] Rename `demo` app to `idatz` as the main showcase
+- [x] Create `examples/simple-editor` for integration demonstration
+- [x] Robust Configuration API (toggles for theme, readonly mode, toolbar)
+- [x] Basic test suite and DOM testing setup
+- [x] Light & Dark theme support out of the box
+- [x] Easy installation instructions in README
+
 ### Phase 3 — Polish (v1.0)
 
 - [ ] Comprehensive test suite
 - [ ] Accessibility audit & fixes
 - [ ] Performance optimization (large documents)
-- [ ] API documentation site
+- [ ] API documentation
 - [ ] npm publish
 - [ ] CDN distribution
 
 ### Phase 4 — Future (post v1.0)
 
 - [ ] Real-time collaboration (via CM6 `collab` module)
-- [ ] Custom theming API (light mode, custom colors)
+- [ ] Custom theming API (custom colors)
 - [ ] Wiki-links and tags
 - [ ] Mermaid diagram rendering
 - [ ] Embedded content (iframes, video)
