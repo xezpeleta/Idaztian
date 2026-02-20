@@ -1,8 +1,10 @@
-# Idaztian Framework
+# Idaztian Editor Framework
 
 > **_When you write_**, ideas flow faster, notes stay organized, and your mind stays clear.
 
 An open-source JavaScript framework that provides an Obsidian-style **live-preview markdown editor** for the web. Renders markdown formatting inline as you type — hiding raw syntax unless your cursor is on the formatted element.
+
+Integrate it in your note taking app, blog, documentation site, or any web application that needs a markdown editor. You can also use it as a **read-only markdown viewer**.  
 
 ## Features
 
@@ -10,8 +12,10 @@ An open-source JavaScript framework that provides an Obsidian-style **live-previ
 - 📝 **Full CommonMark** + GFM tables, task lists, alerts, math, footnotes
 - 🔌 **Embeddable** — drop into any web application
 - ⌨️ **Keyboard shortcuts** — Obsidian-compatible
-- 🌙 **Ilunabar dark theme** — Obsidian-inspired aesthetics
+- 🌙 **Themes** — themes support
+- 🎨 **Customizable** — customize the editor to your needs
 - 🔓 **GPL-3.0** — free and open source
+
 
 ## Quick Start
 
@@ -33,11 +37,14 @@ const editor = new IdaztianEditor({
 });
 ```
 
-## Demo
+For more information, see [API Documentation](https://xezpeleta.github.io/Idaztian/docs/) and [Examples](https://xezpeleta.github.io/Idaztian/examples/).
+
+## Idatz App
 
 The **Idatz App** showcases the full power of the Idaztian Framework in a comprehensive editor.
 
 🌍 **[Launch Live Demo](https://xezpeleta.github.io/Idaztian/)**
+
 
 ### Run locally
 
@@ -50,14 +57,14 @@ npm run dev
 
 Open [http://localhost:5173](http://localhost:5173)
 
-### Using Docker
+### Run locally using Docker
 
 ```bash
-# Install dependencies (via Docker per agents.md)
+# Install dependencies
 docker run --rm -v "$(pwd)":/app -w /app node:lts npm install
 
 # Start idatz app dev server
-docker run --rm -v "$(pwd)":/app -w /app/idatz -p 5174:5174 node:lts npx vite --host 0.0.0.0 --port 5174
+docker run --rm -v "$(pwd)":/app -w /app/idatz -p 5173:5173 node:lts npx vite --host 0.0.0.0 --port 5173
 ```
 
 ## Examples
