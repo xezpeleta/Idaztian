@@ -36,6 +36,12 @@ jobs:
       - name: Build project
         run: npm run build
 
+      - name: Run tests
+        run: npm run test:coverage --workspace=packages/idaztian
+
+      - name: Build docs
+        run: npm run docs --workspace=packages/idaztian
+
       - name: Prepare Pages artifacts
         run: |
           mkdir -p .gh-pages-dist
@@ -53,6 +59,10 @@ jobs:
           # Copy idaztian dist so the html-editor CDN relative links work
           mkdir -p .gh-pages-dist/packages/idaztian/dist
           cp -r packages/idaztian/dist/* .gh-pages-dist/packages/idaztian/dist/
+          
+          # Copy API docs
+          mkdir -p .gh-pages-dist/docs
+          cp -r packages/idaztian/docs-dist/* .gh-pages-dist/docs/
 
       - name: Setup Pages
         uses: actions/configure-pages@v5

@@ -23,4 +23,12 @@ export default defineConfig({
         sourcemap: true,
         cssCodeSplit: false,
     },
+    // @ts-ignore
+    test: {
+        environment: 'jsdom',
+        coverage: {
+            provider: 'v8',
+            reporter: ['text', 'json', 'html']
+        }
+    }
 });

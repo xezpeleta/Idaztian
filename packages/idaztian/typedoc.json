@@ -1,0 +1,7 @@
+{
+    "entryPoints": [
+        "src/index.ts"
+    ],
+    "out": "docs-dist",
+    "name": "Idaztian Framework"
+}

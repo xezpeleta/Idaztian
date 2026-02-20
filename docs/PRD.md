@@ -756,7 +756,7 @@ import { IdaztianEditor } from 'idaztian';
 - [ ] Comprehensive test suite
 - [ ] Accessibility audit & fixes
 - [ ] Performance optimization (large documents)
-- [ ] API documentation
+- [ ] API documentation site on https://xezpeleta.github.io/Idaztian/docs/
 - [ ] npm publish
 - [ ] CDN distribution
 
