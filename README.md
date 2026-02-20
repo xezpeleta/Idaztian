@@ -18,7 +18,7 @@ Integrate it in your note taking app, blog, documentation site, or any web appli
 
 ## Screenshot
 
-![Idatz app screenshot](docs/idatz-screenshot.png)
+![Idatz app screenshot](docs/idatz_screenshot.png)
 
 
 ## Quick Start
