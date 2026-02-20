@@ -149,7 +149,7 @@ Right-click anywhere in the editor to open the **context menu** with Format, Par
 | Tab (in table) | Move to next cell |
 | Shift+Tab (in table) | Move to previous cell |
 
-Click the **⌨** button in the header to see all shortcuts.
+  Click the **⌨** button in the footer to see all shortcuts.
 
 ---
 
@@ -206,6 +206,15 @@ document.getElementById('btn-open')!.addEventListener('click', async () => {
         document.title = `${result.filename} — Idaztian`;
         updateStats(result.content);
     }
+});
+
+document.getElementById('btn-new')!.addEventListener('click', () => {
+    editor.setContent('');
+    currentFilename = 'untitled.md';
+    document.title = 'Untitled — Idaztian';
+    updateStats('');
+    saveContent('');
+    editor.focus();
 });
 
 document.getElementById('btn-download')!.addEventListener('click', () => {
