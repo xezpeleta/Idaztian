@@ -3,7 +3,7 @@ import { EditorState, Extension } from '@codemirror/state';
 import {
     cmdBold, cmdItalic, cmdCode, cmdStrikethrough, cmdLink,
     cmdHeading, cmdBulletList, cmdOrderedList, cmdTaskList, cmdBlockquote,
-    cmdInsertTable, cmdInsertCodeBlock, cmdInsertHorizontalRule,
+    cmdInsertTable, cmdInsertCodeBlock, cmdInsertHorizontalRule, cmdInsertCallout,
     isBold, isItalic, isCodeActive, isStrikethroughActive,
     getHeadingLevel, isBulletListActive, isOrderedListActive, isTaskListActive, isBlockquoteActive,
 } from './commands';
@@ -18,6 +18,7 @@ type ToolbarItemId =
     | 'heading' | 'h1' | 'h2' | 'h3'
     | 'bullet-list' | 'ordered-list' | 'task-list'
     | 'blockquote'
+    | 'callout'
     | 'table' | 'code-block' | 'horizontal-rule'
     | 'separator';
 
@@ -115,6 +116,12 @@ const TOOLBAR_ITEM_DEFS: Record<string, ToolbarItemDef> = {
         action: cmdBlockquote,
         isActive: isBlockquoteActive,
     },
+    callout: {
+        id: 'callout',
+        title: 'Insert callout',
+        icon: '<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 9v2"/><path d="M12 15h.01"/><path d="M20 12a8 8 0 1 1-16 0 8 8 0 0 1 16 0z"/></svg>',
+        action: (v) => cmdInsertCallout(v, 'NOTE'),
+    },
     table: {
         id: 'table',
         title: 'Insert table',
@@ -141,7 +148,7 @@ export const DEFAULT_TOOLBAR_ITEMS: ToolbarItemId[] = [
     'h1', 'h2', 'h3', 'separator',
     'bullet-list', 'ordered-list', 'task-list', 'separator',
     'blockquote', 'separator',
-    'link', 'table', 'code-block', 'horizontal-rule',
+    'callout', 'link', 'table', 'code-block', 'horizontal-rule',
 ];
 
 // ── DOM ────────────────────────────────────────────────────────────────────
