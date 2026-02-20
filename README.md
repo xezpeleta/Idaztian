@@ -35,6 +35,12 @@ const editor = new IdaztianEditor({
 
 ## Demo
 
+The **Idatz App** showcases the full power of the Idaztian Framework in a comprehensive editor.
+
+🌍 **[Launch Live Demo](https://xezpeleta.github.io/Idaztian/)**
+
+### Run locally
+
 ```bash
 git clone https://github.com/xezpeleta/idaztian
 cd idaztian
@@ -56,7 +62,10 @@ docker run --rm -v "$(pwd)":/app -w /app/idatz -p 5174:5174 node:lts npx vite --
 
 ## Examples
 
-Check out `examples/simple-editor` for a minimal, lightweight integration example showing how to quickly load up Idaztian.
+Explore our integration examples to see how effortlessly the framework drops into different environments:
+
+- 🏎️ **[Simple Editor (Vite + TypeScript)](https://xezpeleta.github.io/Idaztian/examples/simple-editor/)**: A minimal, lightweight integration showing how to quickly load up Idaztian in modern toolchains. (Source: [`examples/simple-editor`](examples/simple-editor))
+- 📄 **[Pure HTML Editor](https://xezpeleta.github.io/Idaztian/examples/html-editor/)**: Zero build tools required. Shows how to embed Idaztian using static files or a CDN. (Source: [`examples/html-editor`](examples/html-editor))
 
 ## Documentation
 
