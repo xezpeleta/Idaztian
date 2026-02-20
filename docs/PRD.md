@@ -753,12 +753,12 @@ import { IdaztianEditor } from 'idaztian';
 
 ### Phase 3 — Polish (v1.0)
 
-- [ ] Comprehensive test suite
+- [x] Comprehensive test suite
 - [ ] Accessibility audit & fixes
 - [ ] Performance optimization (large documents)
-- [ ] API documentation site on https://xezpeleta.github.io/Idaztian/docs/
-- [ ] npm publish
-- [ ] CDN distribution
+- [x] API documentation site on https://xezpeleta.github.io/Idaztian/docs/
+- [x] npm publish
+- [x] CDN distribution
 
 ### Phase 4 — Future (post v1.0)
 
