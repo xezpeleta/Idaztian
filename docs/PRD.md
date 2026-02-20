@@ -736,7 +736,7 @@ import { IdaztianEditor } from 'idaztian';
 - [x] Table interaction (always-rendered, hover +row/+column handles)
 - [x] Context menu (right-click with Format/Paragraph/Insert submenus)
 - [x] Toolbar component
-- [ ] Find & Replace
+- [x] Find & Replace
 - [x] Smart pairs and indent
 - [x] Word/character count
 - [x] Paste handling (HTML → markdown, image paste)

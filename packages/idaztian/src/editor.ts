@@ -9,6 +9,7 @@ import { buildExtensions, contextMenuExtension, toolbarExtension, DEFAULT_TOOLBA
 import { shortcutsExtension } from './extensions/shortcuts';
 import { selectionWrapExtension } from './extensions/selection-wrap';
 import { ilunabarDark } from './theme/ilunabar-dark';
+import { ilunabarLight } from './theme/ilunabar-light';
 import { wordCount, charCount } from './utils/markdown';
 
 /**
@@ -29,6 +30,7 @@ export class IdaztianEditor {
     private config: IdaztianConfig;
     private readOnlyCompartment = new Compartment();
     private toolbarCompartment = new Compartment();
+    private themeCompartment = new Compartment();
 
     constructor(config: IdaztianConfig) {
         this.config = { ...DEFAULT_CONFIG, ...config };
@@ -124,7 +126,9 @@ export class IdaztianEditor {
             ...shortcutsExtension(cfg.onSave),
 
             // Theme
-            ...ilunabarDark(),
+            this.themeCompartment.of(
+                cfg.theme === 'light' ? ilunabarLight() : ilunabarDark()
+            ),
 
             // Base editor styling
             EditorView.lineWrapping,
@@ -205,6 +209,19 @@ export class IdaztianEditor {
 
     toggleToolbar(): void {
         this.setToolbar(!this.config.toolbar);
+    }
+
+    setTheme(theme: 'dark' | 'light' | 'system'): void {
+        if (this.config.theme === theme) return;
+        this.config.theme = theme;
+        // For 'system', we'll default to dark or detect via matchMedia if preferred.
+        // Keeping it simple: if not light, it's dark.
+        const isLight = theme === 'light' || (theme === 'system' && window.matchMedia && window.matchMedia('(prefers-color-scheme: light)').matches);
+        this.view.dispatch({
+            effects: this.themeCompartment.reconfigure(
+                isLight ? ilunabarLight() : ilunabarDark()
+            ),
+        });
     }
 
     // ── History ──────────────────────────────────────────────────────────

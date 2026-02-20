@@ -29,6 +29,9 @@ export interface IdaztianConfig {
     /** Placeholder text shown when editor is empty */
     placeholder?: string;
 
+    /** Choose the theme (default: 'dark') */
+    theme?: 'dark' | 'light' | 'system';
+
     /** Make the editor read-only (default: false) */
     readOnly?: boolean;
 
@@ -63,6 +66,7 @@ export interface IdaztianConfig {
 export const DEFAULT_CONFIG: Required<Omit<IdaztianConfig, 'parent' | 'onChange' | 'onSave' | 'onSelectionChange' | 'toolbarItems'>> = {
     initialContent: '',
     placeholder: 'Start writing...',
+    theme: 'dark',
     readOnly: false,
     lineNumbers: false,
     toolbar: false,

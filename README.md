@@ -20,11 +20,15 @@ npm install idaztian
 ```
 
 ```typescript
+import 'idaztian/style.css'; // Make sure to import the CSS!
 import { IdaztianEditor } from 'idaztian';
 
 const editor = new IdaztianEditor({
   parent: document.getElementById('editor'),
   initialContent: '# Hello World\n\nStart writing...',
+  theme: 'system', // 'light' | 'dark' | 'system'
+  toolbar: true, // show formatting toolbar
+  readOnly: false, // toggle disable editing
   onChange: (content) => console.log(content),
 });
 ```
@@ -46,10 +50,13 @@ Open [http://localhost:5173](http://localhost:5173)
 # Install dependencies (via Docker per agents.md)
 docker run --rm -v "$(pwd)":/app -w /app node:lts npm install
 
-# Start dev server
-docker run --rm -v "$(pwd)":/app -w /app/demo -p 5174:5174 node:lts npx vite --host 0.0.0.0 --port 5174
-
+# Start idatz app dev server
+docker run --rm -v "$(pwd)":/app -w /app/idatz -p 5174:5174 node:lts npx vite --host 0.0.0.0 --port 5174
 ```
+
+## Examples
+
+Check out `examples/simple-editor` for a minimal, lightweight integration example showing how to quickly load up Idaztian.
 
 ## Documentation
 
