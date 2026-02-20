@@ -172,11 +172,11 @@ const editor = new IdaztianEditor({
     extensions: {
         math: true,
     },
-    onChange(content) {
+    onChange(content: string) {
         updateStats(content);
         saveContent(content);
     },
-    onSave(content) {
+    onSave(content: string) {
         downloadFile(content, currentFilename);
     },
 });
