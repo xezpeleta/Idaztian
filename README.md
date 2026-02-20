@@ -16,6 +16,10 @@ Integrate it in your note taking app, blog, documentation site, or any web appli
 - 🎨 **Customizable** — customize the editor to your needs
 - 🔓 **GPL-3.0** — free and open source
 
+## Screenshot
+
+![Idatz app screenshot](docs/idatz-screenshot.png)
+
 
 ## Quick Start
 
