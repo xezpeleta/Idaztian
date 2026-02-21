@@ -50,26 +50,14 @@ The **Idatz App** showcases the full power of the Idaztian Framework in a compre
 🌍 **[Launch Live Demo](https://xezpeleta.github.io/Idaztian/)**
 
 
-### Run locally
+### Run Idatz editor locally using Docker
 
 ```bash
-git clone https://github.com/xezpeleta/idaztian
-cd idaztian
-npm install
-npm run dev
+cd idatz
+docker compose up -d
 ```
 
-Open [http://localhost:5173](http://localhost:5173)
-
-### Run locally using Docker
-
-```bash
-# Install dependencies
-docker run --rm -v "$(pwd)":/app -w /app node:lts npm install
-
-# Start idatz app dev server
-docker run --rm -v "$(pwd)":/app -w /app/idatz -p 5173:5173 node:lts npx vite --host 0.0.0.0 --port 5173
-```
+Visit [http://localhost:5174](http://localhost:5174)
 
 ## Examples
 
