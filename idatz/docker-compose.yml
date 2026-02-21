@@ -1,0 +1,11 @@
+services:
+  idatz-dev:
+    image: node:lts
+    container_name: idatz-dev
+    working_dir: /workspace/idatz
+    volumes:
+      # Mount the whole parent workspace to allow Vite to resolve '../packages/idaztian'
+      - ../:/workspace
+    ports:
+      - "5174:5174"
+    command: npm run dev
