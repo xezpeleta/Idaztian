@@ -115,8 +115,11 @@ export const ilunabarLightTheme = EditorView.theme(
             color: colors.textMuted,
         },
         '.idz-heading-marker': {
-            color: colors.accent,
+            color: colors.textMuted,
             fontWeight: '700',
+        },
+        '.idz-heading-marker *': {
+            color: 'inherit !important',
         },
 
         // ── Emphasis styles ─────────────────────────────────────────────────
