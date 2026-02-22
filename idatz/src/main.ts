@@ -1,6 +1,7 @@
 import { IdaztianEditor } from 'idaztian';
 import { openFile, downloadFile } from './file-handler';
 import { saveContent, loadContent } from './local-storage';
+import { isTauriEnvironment, desktopOpenFile, desktopSaveFile, subscribeToFileChanges } from './desktop';
 
 // ── Sample content ──────────────────────────────────────────────────────────
 
@@ -174,12 +175,34 @@ const editor = new IdaztianEditor({
     },
     onChange(content: string) {
         updateStats(content);
-        saveContent(content);
+
+        if (isTauriEnvironment() && currentFilename !== 'untitled.md') {
+            // In Tauri we save directly to the disk
+            desktopSaveFile(currentFilename, content).catch(console.error);
+        } else {
+            // In Browser we save to localStorage
+            saveContent(content);
+        }
     },
     onSave(content: string) {
-        downloadFile(content, currentFilename);
+        if (isTauriEnvironment()) {
+            desktopSaveFile(currentFilename, content).catch(console.error);
+        } else {
+            downloadFile(content, currentFilename);
+        }
     },
 });
+
+if (isTauriEnvironment()) {
+    // If we're inside Tauri, subscribe to the rust file-changed events
+    subscribeToFileChanges((newContent) => {
+        // Only update if the content has actually changed to prevent loops
+        if (editor.getContent() !== newContent) {
+            editor.setContent(newContent);
+            updateStats(newContent);
+        }
+    }).catch(console.error);
+}
 
 // ── Stats bar ────────────────────────────────────────────────────────────────
 
@@ -199,12 +222,39 @@ updateStats(storedContent ?? SAMPLE_CONTENT);
 // ── Header buttons ───────────────────────────────────────────────────────────
 
 document.getElementById('btn-open')!.addEventListener('click', async () => {
-    const result = await openFile();
-    if (result) {
-        editor.setContent(result.content);
-        currentFilename = result.filename;
-        document.title = `${result.filename} — Idaztian`;
-        updateStats(result.content);
+    if (isTauriEnvironment()) {
+        try {
+            // Note: in a real desktop app we would use @tauri-apps/plugin-dialog
+            // to show a native file picker, but here we reuse the HTML input for simplicity
+            // or we could just prompt for a path for testing.
+            const result = await openFile();
+            if (result) {
+                // Since `openFile` in the browser returns the content and name, we
+                // can't actually get the absolute path from the browser's input element easily due to security rules.
+                // For a robust Tauri implementation, you *must* use tauri's dialog plugin.
+                // Assuming `result.filename` is an absolute path passed for testing purposes,
+                // or we fall back to the browser way just to show some content.
+                // We'll trust the user imports a valid path string via prompt for the *Watcher* demo functionality:
+                const absolutePath = prompt("Enter absolute path to watch (ex: /workspace/idatz/test.md):", result.filename);
+                if (absolutePath) {
+                    const content = await desktopOpenFile(absolutePath);
+                    editor.setContent(content);
+                    currentFilename = absolutePath;
+                    document.title = `${absolutePath} — Tauri`;
+                    updateStats(content);
+                }
+            }
+        } catch (e) {
+            console.error(e);
+        }
+    } else {
+        const result = await openFile();
+        if (result) {
+            editor.setContent(result.content);
+            currentFilename = result.filename;
+            document.title = `${result.filename} — Idaztian`;
+            updateStats(result.content);
+        }
     }
 });
 
@@ -218,7 +268,11 @@ document.getElementById('btn-new')!.addEventListener('click', () => {
 });
 
 document.getElementById('btn-download')!.addEventListener('click', () => {
-    downloadFile(editor.getContent(), currentFilename);
+    if (isTauriEnvironment()) {
+        desktopSaveFile(currentFilename, editor.getContent()).catch(console.error);
+    } else {
+        downloadFile(editor.getContent(), currentFilename);
+    }
 });
 
 document.getElementById('btn-toolbar')!.addEventListener('click', () => {

@@ -1,0 +1,37 @@
+FROM ubuntu:22.04
+
+# Avoid silent prompt blocks during apt-get
+ENV DEBIAN_FRONTEND=noninteractive
+
+# Update system and install minimal tools to fetch Rust & Node
+RUN apt-get update && apt-get install -y curl wget git build-essential
+
+# Install Rust (minimum 1.70.0 for Tauri)
+RUN curl --proto '=https' --tlsv1.2 -sSf https://sh.rustup.rs | sh -s -- -y
+ENV PATH="/root/.cargo/bin:${PATH}"
+
+# Install Node.js
+RUN curl -fsSL https://deb.nodesource.com/setup_lts.x | bash - && \
+    apt-get update && \
+    apt-get install -y nodejs
+
+# Install Tauri Linux dependencies
+# https://v2.tauri.app/start/prerequisites/#linux
+RUN apt-get update && \
+    apt-get install -y \
+    libwebkit2gtk-4.1-dev \
+    build-essential \
+    curl \
+    wget \
+    file \
+    libxdo-dev \
+    libssl-dev \
+    libayatana-appindicator3-dev \
+    librsvg2-dev
+
+# Install cargo-tauri CLI globally
+RUN cargo install tauri-cli --version "^2.0.0"
+
+WORKDIR /workspace/idatz
+
+CMD ["bash"]
