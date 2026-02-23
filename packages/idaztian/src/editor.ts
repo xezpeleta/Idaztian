@@ -171,6 +171,13 @@ export class IdaztianEditor {
         return { from, to, text: this.view.state.sliceDoc(from, to) };
     }
 
+    setSelectionRange(from: number, to: number): void {
+        const docLength = this.view.state.doc.length;
+        const clampedFrom = Math.max(0, Math.min(from, docLength));
+        const clampedTo = Math.max(0, Math.min(to, docLength));
+        this.view.dispatch({ selection: { anchor: clampedFrom, head: clampedTo } });
+    }
+
     getCursorPosition(): { line: number; ch: number } {
         const head = this.view.state.selection.main.head;
         const line = this.view.state.doc.lineAt(head);

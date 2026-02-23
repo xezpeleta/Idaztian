@@ -11,6 +11,7 @@
     "dependencies": {
         "@fontsource/inter": "^5.2.8",
         "@tauri-apps/api": "^2.10.1",
+        "@tauri-apps/plugin-dialog": "^2.0.0",
         "idaztian": "*"
     },
     "devDependencies": {
