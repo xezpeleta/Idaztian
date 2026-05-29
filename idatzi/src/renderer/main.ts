@@ -419,6 +419,9 @@ function hideContextMenu() {
 contextMenu.addEventListener('click', async (e) => {
   const action = (e.target as HTMLElement).closest('.context-menu-item')?.getAttribute('data-action');
   if (!action) return;
+
+  // Capture before hiding (hideContextMenu clears them)
+  const targetPath = contextTargetPath;
   hideContextMenu();
 
   if (action === 'new') {
@@ -426,14 +429,14 @@ contextMenu.addEventListener('click', async (e) => {
   } else if (action === 'save') {
     await handleDownload(editor.getContent());
   } else if (action === 'delete') {
-    if (!confirm(`Delete "${contextTargetPath.split('/').pop()}"?`)) return;
-    const result = await window.idatzi.deleteFile(contextTargetPath);
+    if (!confirm(`Delete "${targetPath.split('/').pop()}"?`)) return;
+    const result = await window.idatzi.deleteFile(targetPath);
     if (!result.ok) {
       alert(result.error || 'Failed to delete file');
       return;
     }
     // If we deleted the currently open file, clear editor
-    if (currentFilePath === contextTargetPath) {
+    if (currentFilePath === targetPath) {
       currentFilePath = '';
       currentFilename = 'document.md';
       editor.setContent('');
