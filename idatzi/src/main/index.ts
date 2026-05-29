@@ -148,6 +148,17 @@ ipcMain.handle('file:delete', async (_event, filePath: string) => {
   }
 });
 
+ipcMain.handle('dir:create', async (_event, parentPath: string, name: string) => {
+  try {
+    const dirPath = path.join(parentPath, name);
+    if (fs.existsSync(dirPath)) return { ok: false, error: 'Directory already exists' };
+    fs.mkdirSync(dirPath);
+    return { ok: true };
+  } catch {
+    return { ok: false, error: 'Failed to create directory' };
+  }
+});
+
 // ---- IPC handlers: File dialogs ----
 ipcMain.handle('file:open', async () => {
   const win = BrowserWindow.getFocusedWindow();

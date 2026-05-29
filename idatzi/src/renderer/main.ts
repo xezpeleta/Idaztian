@@ -313,6 +313,64 @@ async function handleNew() {
   startInlineRename();
 }
 
+async function handleNewDir() {
+  if (!currentDir) return;
+  startInlineRenameDir();
+}
+
+function startInlineRenameDir() {
+  const list = document.getElementById('file-list')!;
+  const existing = list.querySelector('.file-item--new');
+  if (existing) existing.remove();
+
+  const li = document.createElement('li');
+  li.className = 'file-item file-item--new file-item--dir';
+  li.innerHTML = `
+    <svg class="file-item-icon" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M22 19a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h5l2 3h9a2 2 0 0 1 2 2z"/></svg>
+    <input class="file-rename-input" type="text" value="new-folder" spellcheck="false" />
+  `;
+
+  list.appendChild(li);
+
+  const input = li.querySelector('input')!;
+  input.focus();
+  input.select();
+
+  let committed = false;
+
+  const commit = async () => {
+    if (committed) return;
+    committed = true;
+    const name = input.value.trim();
+    li.remove();
+    if (!name) {
+      editor.focus();
+      return;
+    }
+    const result = await window.idatzi.createDir(currentDir, name);
+    if (!result.ok) {
+      alert(result.error || 'Failed to create directory');
+      return;
+    }
+    await refreshDir();
+    editor.focus();
+  };
+
+  const cancel = () => {
+    committed = true;
+    li.remove();
+    editor.focus();
+  };
+
+  input.addEventListener('keydown', (e) => {
+    if (e.key === 'Enter') { e.preventDefault(); commit(); }
+    if (e.key === 'Escape') { e.preventDefault(); cancel(); }
+  });
+  input.addEventListener('blur', () => {
+    setTimeout(() => { if (!committed) commit(); }, 150);
+  });
+}
+
 function startInlineRename() {
   const list = document.getElementById('file-list')!;
   // Remove any existing inline input
@@ -396,14 +454,20 @@ function showContextMenu(e: MouseEvent) {
   }
 
   // Show/hide items based on context
-  const newItem = contextMenu.querySelector('[data-action="new"]') as HTMLElement;
+  const newFileItem = contextMenu.querySelector('[data-action="new-file"]') as HTMLElement;
+  const newDirItem = contextMenu.querySelector('[data-action="new-dir"]') as HTMLElement;
   const saveItem = contextMenu.querySelector('[data-action="save"]') as HTMLElement;
   const deleteItem = contextMenu.querySelector('[data-action="delete"]') as HTMLElement;
-  const isFile = contextTargetType === 'file';
+
   const isEmptySpace = !el;
-  newItem.hidden = !isEmptySpace;
-  saveItem.hidden = !isFile;
-  deleteItem.hidden = !isFile;
+  const isFile = contextTargetType === 'file';
+
+  // Empty space: only New File + New Directory
+  newFileItem.style.display = isEmptySpace ? '' : 'none';
+  newDirItem.style.display = isEmptySpace ? '' : 'none';
+  // File: only Save As + Delete
+  saveItem.style.display = isFile ? '' : 'none';
+  deleteItem.style.display = isFile ? '' : 'none';
 
   contextMenu.style.left = `${e.clientX}px`;
   contextMenu.style.top = `${e.clientY}px`;
@@ -424,8 +488,10 @@ contextMenu.addEventListener('click', async (e) => {
   const targetPath = contextTargetPath;
   hideContextMenu();
 
-  if (action === 'new') {
+  if (action === 'new-file') {
     await handleNew();
+  } else if (action === 'new-dir') {
+    await handleNewDir();
   } else if (action === 'save') {
     await handleDownload(editor.getContent());
   } else if (action === 'delete') {
