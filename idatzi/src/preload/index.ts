@@ -15,6 +15,8 @@ export interface IdatziAPI {
   // File operations (Electron native dialogs)
   readFile: (filePath: string) => Promise<string | null>;
   statPath: (filePath: string) => Promise<{ type: 'file' | 'dir' } | null>;
+  createFile: (dirPath: string, name: string) => Promise<{ ok: boolean; path?: string; error?: string }>;
+  deleteFile: (filePath: string) => Promise<{ ok: boolean; error?: string }>;
   openFile: () => Promise<{ content: string; filename: string } | null>;
   saveFile: (content: string, defaultName: string) => Promise<string | null>;
   // Content persistence via backend
@@ -60,6 +62,8 @@ const api: IdatziAPI = {
   listDir: (dirPath: string) => ipcRenderer.invoke('dir:list', dirPath),
   readFile: (filePath: string) => ipcRenderer.invoke('file:read', filePath),
   statPath: (filePath: string) => ipcRenderer.invoke('file:stat', filePath),
+  createFile: (dirPath: string, name: string) => ipcRenderer.invoke('file:create', dirPath, name),
+  deleteFile: (filePath: string) => ipcRenderer.invoke('file:delete', filePath),
   openFile: () => ipcRenderer.invoke('file:open'),
   saveFile: (content: string, defaultName: string) => ipcRenderer.invoke('file:save', content, defaultName),
   saveToBackend: (content: string) => ipcRenderer.invoke('backend:save-content', content),

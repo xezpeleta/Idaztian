@@ -189,6 +189,7 @@ async function handleChangeDir() {
   }
 }
 
+document.getElementById('btn-new-file')!.addEventListener('click', handleNew);
 document.getElementById('btn-change-dir')!.addEventListener('click', handleChangeDir);
 document.getElementById('btn-refresh-dir')!.addEventListener('click', refreshDir);
 
@@ -221,6 +222,20 @@ sidebarResize.addEventListener('mousedown', (e) => {
 // ──────────────────────────────────────────────────────────────────
 let currentFilename = 'document.md';
 let editor: IdaztianEditor;
+
+function updateStats(content: string) {
+  const words = content.trim() ? content.trim().split(/\s+/).length : 0;
+  const chars = content.replace(/\n/g, '').length;
+  const lines = content.split('\n').length;
+  document.getElementById('stat-words')!.textContent = `Words: ${words.toLocaleString()}`;
+  document.getElementById('stat-chars')!.textContent = `Characters: ${chars.toLocaleString()}`;
+  document.getElementById('stat-lines')!.textContent = `Lines: ${lines.toLocaleString()}`;
+}
+
+async function handleDownload(content?: string) {
+  const text = content ?? editor.getContent();
+  await window.idatzi.saveFile(text, currentFilename);
+}
 
 async function initEditor(initialContent: string) {
   editor = new IdaztianEditor({
@@ -293,41 +308,149 @@ async function handleOpenPath(rawPath: string) {
   }
 }
 
-async function handleOpen() {
-  const result = await window.idatzi.openFile();
-  if (result) {
-    editor.setContent(result.content);
-    currentFilename = result.filename;
-    document.title = `${result.filename} — Idatzi`;
-    updateStats(result.content);
-  }
-}
-
 async function handleNew() {
-  editor.setContent('');
-  currentFilename = 'untitled.md';
-  document.title = 'Untitled — Idatzi';
-  updateStats('');
-  try { localStorage.setItem('idatzi:doc', ''); } catch {}
-  editor.focus();
+  if (!currentDir) return;
+  startInlineRename();
 }
 
-async function handleDownload(content?: string) {
-  const text = content ?? editor.getContent();
-  await window.idatzi.saveFile(text, currentFilename);
+function startInlineRename() {
+  const list = document.getElementById('file-list')!;
+  // Remove any existing inline input
+  const existing = list.querySelector('.file-item--new');
+  if (existing) existing.remove();
+
+  const li = document.createElement('li');
+  li.className = 'file-item file-item--new';
+  li.innerHTML = `
+    <svg class="file-item-icon" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/></svg>
+    <input class="file-rename-input" type="text" value="untitled.md" spellcheck="false" />
+  `;
+
+  // Insert at bottom of list
+  list.appendChild(li);
+
+  const input = li.querySelector('input')!;
+  input.focus();
+  // Select the name part (before .md)
+  const dot = input.value.lastIndexOf('.');
+  input.setSelectionRange(0, dot >= 0 ? dot : input.value.length);
+
+  let committed = false;
+
+  const commit = async () => {
+    if (committed) return;
+    committed = true;
+    const name = input.value.trim();
+    li.remove();
+    if (!name) {
+      editor.focus();
+      return;
+    }
+    const safeName = name.endsWith('.md') ? name : name + '.md';
+    const result = await window.idatzi.createFile(currentDir, safeName);
+    if (!result.ok) {
+      alert(result.error || 'Failed to create file');
+      return;
+    }
+    currentFilePath = result.path!;
+    currentFilename = safeName;
+    editor.setContent('');
+    document.title = `${safeName} — Idatzi`;
+    updateStats('');
+    await refreshDir();
+    editor.focus();
+  };
+
+  const cancel = () => {
+    committed = true;
+    li.remove();
+    editor.focus();
+  };
+
+  input.addEventListener('keydown', (e) => {
+    if (e.key === 'Enter') { e.preventDefault(); commit(); }
+    if (e.key === 'Escape') { e.preventDefault(); cancel(); }
+  });
+  input.addEventListener('blur', () => {
+    // Small delay so Enter keydown can fire first
+    setTimeout(() => { if (!committed) commit(); }, 150);
+  });
 }
 
-// ──────────────────────────────────────────────────────────────────
-// Stats bar
-// ──────────────────────────────────────────────────────────────────
-function updateStats(content: string) {
-  const words = content.trim() ? content.trim().split(/\s+/).length : 0;
-  const chars = content.replace(/\n/g, '').length;
-  const lines = content.split('\n').length;
-  document.getElementById('stat-words')!.textContent = `Words: ${words.toLocaleString()}`;
-  document.getElementById('stat-chars')!.textContent = `Characters: ${chars.toLocaleString()}`;
-  document.getElementById('stat-lines')!.textContent = `Lines: ${lines.toLocaleString()}`;
+// Sidebar context menu
+const contextMenu = document.getElementById('sidebar-context-menu')!;
+let contextTargetPath = '';
+let contextTargetType = '';
+
+function showContextMenu(e: MouseEvent) {
+  e.preventDefault();
+  const el = (e.target as HTMLElement).closest('.file-item') as HTMLElement | null;
+
+  // Determine if we're on a file, directory, or empty space
+  if (el) {
+    contextTargetPath = el.getAttribute('data-path')!;
+    contextTargetType = el.getAttribute('data-type')!;
+  } else {
+    contextTargetPath = '';
+    contextTargetType = '';
+  }
+
+  // Show/hide items based on context
+  const newItem = contextMenu.querySelector('[data-action="new"]') as HTMLElement;
+  const saveItem = contextMenu.querySelector('[data-action="save"]') as HTMLElement;
+  const deleteItem = contextMenu.querySelector('[data-action="delete"]') as HTMLElement;
+  const isFile = contextTargetType === 'file';
+  const isEmptySpace = !el;
+  newItem.hidden = !isEmptySpace;
+  saveItem.hidden = !isFile;
+  deleteItem.hidden = !isFile;
+
+  contextMenu.style.left = `${e.clientX}px`;
+  contextMenu.style.top = `${e.clientY}px`;
+  contextMenu.hidden = false;
 }
+
+function hideContextMenu() {
+  contextMenu.hidden = true;
+  contextTargetPath = '';
+  contextTargetType = '';
+}
+
+contextMenu.addEventListener('click', async (e) => {
+  const action = (e.target as HTMLElement).closest('.context-menu-item')?.getAttribute('data-action');
+  if (!action) return;
+  hideContextMenu();
+
+  if (action === 'new') {
+    await handleNew();
+  } else if (action === 'save') {
+    await handleDownload(editor.getContent());
+  } else if (action === 'delete') {
+    if (!confirm(`Delete "${contextTargetPath.split('/').pop()}"?`)) return;
+    const result = await window.idatzi.deleteFile(contextTargetPath);
+    if (!result.ok) {
+      alert(result.error || 'Failed to delete file');
+      return;
+    }
+    // If we deleted the currently open file, clear editor
+    if (currentFilePath === contextTargetPath) {
+      currentFilePath = '';
+      currentFilename = 'document.md';
+      editor.setContent('');
+      document.title = 'Idatzi';
+      updateStats('');
+    }
+    await refreshDir();
+  }
+});
+
+// Add context menu listener to file list
+document.getElementById('file-list')!.addEventListener('contextmenu', showContextMenu);
+document.addEventListener('click', (e) => {
+  if (!contextMenu.hidden && !contextMenu.contains(e.target as Node)) {
+    hideContextMenu();
+  }
+});
 
 // ──────────────────────────────────────────────────────────────────
 // Shortcuts modal
@@ -351,9 +474,6 @@ document.getElementById('btn-close')!.addEventListener('click', () => window.ida
 // ──────────────────────────────────────────────────────────────────
 // Header buttons
 // ──────────────────────────────────────────────────────────────────
-document.getElementById('btn-open')!.addEventListener('click', handleOpen);
-document.getElementById('btn-new')!.addEventListener('click', handleNew);
-document.getElementById('btn-download')!.addEventListener('click', () => handleDownload());
 document.getElementById('btn-toolbar')!.addEventListener('click', () => {
   // The IdaztianEditor exposes toggleToolbar if available
   (editor as any).toggleToolbar?.();

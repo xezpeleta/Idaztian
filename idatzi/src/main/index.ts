@@ -128,6 +128,26 @@ ipcMain.handle('file:stat', async (_event, filePath: string) => {
   }
 });
 
+ipcMain.handle('file:create', async (_event, dirPath: string, name: string) => {
+  try {
+    const filePath = path.join(dirPath, name);
+    if (fs.existsSync(filePath)) return { ok: false, error: 'File already exists' };
+    fs.writeFileSync(filePath, '', 'utf-8');
+    return { ok: true, path: filePath };
+  } catch {
+    return { ok: false, error: 'Failed to create file' };
+  }
+});
+
+ipcMain.handle('file:delete', async (_event, filePath: string) => {
+  try {
+    fs.unlinkSync(filePath);
+    return { ok: true };
+  } catch {
+    return { ok: false, error: 'Failed to delete file' };
+  }
+});
+
 // ---- IPC handlers: File dialogs ----
 ipcMain.handle('file:open', async () => {
   const win = BrowserWindow.getFocusedWindow();
@@ -254,6 +274,11 @@ app.whenReady().then(async () => {
   const userArg = args[1];
   if (userArg && !openPath) {
     openPath = resolveOpenPath(userArg);
+  }
+
+  // Dev convenience: allow IDATZI_OPEN env var to simulate CLI arg
+  if (!openPath && process.env.IDATZI_OPEN) {
+    openPath = resolveOpenPath(process.env.IDATZI_OPEN);
   }
 
   // Start backend automatically on app launch
