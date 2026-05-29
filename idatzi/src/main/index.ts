@@ -1,6 +1,7 @@
 import { app, BrowserWindow, ipcMain, dialog, nativeTheme } from 'electron';
 import path from 'path';
 import fs from 'fs';
+import os from 'os';
 import { startBackend, stopBackend, getStatus, registerStatusListener, BackendStatus } from './backend';
 import { recordBackendReady, recordEditorInit, getStartupMetrics, StartupMetrics } from './metrics';
 
@@ -45,6 +46,54 @@ ipcMain.handle('backend:load-content', async () => {
     if (!resp.ok) return null;
     const data = await resp.json() as { content?: string };
     return data.content ?? null;
+  } catch {
+    return null;
+  }
+});
+
+// ---- IPC handlers: Directory listing ----
+ipcMain.on('dir:home', (event) => {
+  event.returnValue = os.homedir();
+});
+
+ipcMain.handle('dir:select', async () => {
+  const win = BrowserWindow.getFocusedWindow();
+  if (!win) return null;
+  const result = await dialog.showOpenDialog(win, {
+    title: 'Select Directory',
+    properties: ['openDirectory'],
+  });
+  if (result.canceled || result.filePaths.length === 0) return null;
+  return result.filePaths[0];
+});
+
+ipcMain.handle('dir:list', async (_event, dirPath: string) => {
+  try {
+    const entries = fs.readdirSync(dirPath, { withFileTypes: true });
+    const items: { name: string; path: string; type: 'file' | 'dir' }[] = [];
+
+    // Directories first, then files (each group sorted alphabetically)
+    const dirs = entries
+      .filter(e => e.isDirectory() && !e.name.startsWith('.'))
+      .map(e => ({ name: e.name, path: path.join(dirPath, e.name), type: 'dir' as const }))
+      .sort((a, b) => a.name.localeCompare(b.name));
+
+    const files = entries
+      .filter(e => e.isFile() && /\.(?:md|markdown|txt)$/i.test(e.name))
+      .map(e => ({ name: e.name, path: path.join(dirPath, e.name), type: 'file' as const }))
+      .sort((a, b) => a.name.localeCompare(b.name));
+
+    items.push(...dirs, ...files);
+    return items;
+  } catch {
+    return [];
+  }
+});
+
+ipcMain.handle('file:read', async (_event, filePath: string) => {
+  try {
+    const content = fs.readFileSync(filePath, 'utf-8');
+    return content;
   } catch {
     return null;
   }

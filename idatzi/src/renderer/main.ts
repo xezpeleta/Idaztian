@@ -63,6 +63,160 @@ $$
 `;
 
 // ──────────────────────────────────────────────────────────────────
+// Sidebar — directory file listing
+// ──────────────────────────────────────────────────────────────────
+let currentDir = '';
+let currentFilePath = '';
+
+const LS_DIR_KEY = 'idatzi:last-dir';
+
+function getParentDir(dirPath: string): string | null {
+  // Strip trailing slash
+  const clean = dirPath.replace(/[/\\]+$/, '');
+  const sep = clean.lastIndexOf('/');
+  const altSep = clean.lastIndexOf('\\');
+  const lastSep = Math.max(sep, altSep);
+  if (lastSep <= 0) return null; // root or empty
+  return clean.substring(0, lastSep) || (clean.startsWith('/') ? '/' : null);
+}
+
+function getDefaultDir(): string {
+  // 1. Check localStorage for last-used directory
+  try {
+    const stored = localStorage.getItem(LS_DIR_KEY);
+    if (stored) return stored;
+  } catch {}
+  // 2. Fall back to home directory
+  return window.idatzi.getHomeDir();
+}
+
+async function refreshDir() {
+  const list = document.getElementById('file-list')!;
+  const pathEl = document.getElementById('sidebar-dir-path')!;
+
+  pathEl.textContent = currentDir || '—';
+  pathEl.setAttribute('title', currentDir);
+
+  if (!currentDir) {
+    list.innerHTML = '<li class="file-empty">No directory selected</li>';
+    return;
+  }
+
+  // Persist
+  try { localStorage.setItem(LS_DIR_KEY, currentDir); } catch {}
+
+  const items = await window.idatzi.listDir(currentDir);
+
+  let html = '';
+
+  // Up directory (..)
+  const parentDir = getParentDir(currentDir);
+  if (parentDir !== null) {
+    html += `<li class="file-item file-item--up" data-path="${escapeAttr(parentDir)}" data-type="up">
+      <svg class="file-item-icon" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="m12 19-7-7 7-7"/><path d="M19 12H5"/></svg>
+      ..
+    </li>`;
+  }
+
+  // Directories and files
+  html += items
+    .map(item => {
+      const isDir = item.type === 'dir';
+      const active = !isDir && item.path === currentFilePath ? ' active' : '';
+      const cls = isDir ? ' file-item--dir' : '';
+      const icon = isDir
+        ? '<svg class="file-item-icon" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M22 19a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h5l2 3h9a2 2 0 0 1 2 2z"/></svg>'
+        : '<svg class="file-item-icon" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/></svg>';
+      return `<li class="file-item${active}${cls}" data-path="${escapeAttr(item.path)}" data-type="${item.type}" title="${escapeAttr(item.name)}">
+        ${icon}
+        ${escapeHtml(item.name)}
+      </li>`;
+    })
+    .join('');
+
+  list.innerHTML = html || '<li class="file-empty">Empty directory</li>';
+
+  // Click handlers
+  list.querySelectorAll('.file-item').forEach(el => {
+    el.addEventListener('click', () => {
+      const p = el.getAttribute('data-path')!;
+      const t = el.getAttribute('data-type')!;
+      if (t === 'dir' || t === 'up') {
+        // Navigate into directory
+        currentDir = p;
+        currentFilePath = '';
+        refreshDir();
+      } else {
+        // Open file
+        openSidebarFile(p);
+      }
+    });
+  });
+}
+
+function escapeHtml(s: string) {
+  const d = document.createElement('div');
+  d.textContent = s;
+  return d.innerHTML;
+}
+
+function escapeAttr(s: string) {
+  return s.replace(/&/g, '&amp;').replace(/"/g, '&quot;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
+}
+
+async function openSidebarFile(filePath: string) {
+  const content = await window.idatzi.readFile(filePath);
+  if (content === null) {
+    console.error('Failed to read file:', filePath);
+    return;
+  }
+  editor.setContent(content);
+  const name = filePath.split('/').pop() || filePath.split('\\').pop() || 'untitled.md';
+  currentFilePath = filePath;
+  currentFilename = name;
+  document.title = `${name} — Idatzi`;
+  updateStats(content);
+  refreshDir();
+}
+
+// Change directory button → native open-dir dialog
+async function handleChangeDir() {
+  const newDir = await window.idatzi.selectDir();
+  if (newDir) {
+    currentDir = newDir;
+    currentFilePath = '';
+    refreshDir();
+  }
+}
+
+document.getElementById('btn-change-dir')!.addEventListener('click', handleChangeDir);
+document.getElementById('btn-refresh-dir')!.addEventListener('click', refreshDir);
+
+// Sidebar resize
+const sidebarResize = document.getElementById('sidebar-resize')!;
+const sidebar = document.getElementById('sidebar')!;
+
+sidebarResize.addEventListener('mousedown', (e) => {
+  e.preventDefault();
+  const startX = e.clientX;
+  const startWidth = sidebar.getBoundingClientRect().width;
+
+  const onMove = (ev: MouseEvent) => {
+    const delta = ev.clientX - startX;
+    const newWidth = Math.max(160, Math.min(400, startWidth + delta));
+    sidebar.style.width = `${newWidth}px`;
+  };
+
+  const onUp = () => {
+    document.removeEventListener('mousemove', onMove);
+    document.removeEventListener('mouseup', onUp);
+  };
+
+  document.addEventListener('mousemove', onMove);
+  document.addEventListener('mouseup', onUp);
+});
+
+// ──────────────────────────────────────────────────────────────────
 // Editor setup
 // ──────────────────────────────────────────────────────────────────
 let currentFilename = 'document.md';
@@ -195,6 +349,13 @@ window.idatzi.onThemeChange((isDark: boolean) => {
   const initialContent = storedContent || SAMPLE_CONTENT;
   await initEditor(initialContent);
   updateStats(initialContent);
+
+  // Store reference for sidebar use
+  (window as any).__editor = editor;
+
+  // Initialize sidebar directory
+  currentDir = getDefaultDir();
+  await refreshDir();
 
   // Record editor-init milestone for startup metrics
   await window.idatzi.recordEditorInit();

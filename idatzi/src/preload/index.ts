@@ -5,7 +5,12 @@ export interface IdatziAPI {
   startBackend: () => Promise<string>;
   stopBackend: () => Promise<string>;
   onBackendStatusChange: (callback: (status: string) => void) => () => void;
+  // Directory listing
+  getHomeDir: () => string;
+  selectDir: () => Promise<string | null>;
+  listDir: (dirPath: string) => Promise<{ name: string; path: string; type: 'file' | 'dir' }[]>;
   // File operations (Electron native dialogs)
+  readFile: (filePath: string) => Promise<string | null>;
   openFile: () => Promise<{ content: string; filename: string } | null>;
   saveFile: (content: string, defaultName: string) => Promise<string | null>;
   // Content persistence via backend
@@ -40,6 +45,10 @@ const api: IdatziAPI = {
     ipcRenderer.on('backend:status-change', listener);
     return () => ipcRenderer.removeListener('backend:status-change', listener);
   },
+  getHomeDir: () => ipcRenderer.sendSync('dir:home'),
+  selectDir: () => ipcRenderer.invoke('dir:select'),
+  listDir: (dirPath: string) => ipcRenderer.invoke('dir:list', dirPath),
+  readFile: (filePath: string) => ipcRenderer.invoke('file:read', filePath),
   openFile: () => ipcRenderer.invoke('file:open'),
   saveFile: (content: string, defaultName: string) => ipcRenderer.invoke('file:save', content, defaultName),
   saveToBackend: (content: string) => ipcRenderer.invoke('backend:save-content', content),
