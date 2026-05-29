@@ -68,6 +68,24 @@
     </header>
 
     <main class="app-main" role="main">
+      <aside class="sidebar" id="sidebar">
+        <div class="sidebar-header">
+          <span class="sidebar-title">Files</span>
+          <div class="sidebar-header-actions">
+            <button id="btn-change-dir" class="btn btn-ghost sidebar-btn" title="Change directory" aria-label="Change directory">
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M22 19a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h5l2 3h9a2 2 0 0 1 2 2z"/></svg>
+            </button>
+            <button id="btn-refresh-dir" class="btn btn-ghost sidebar-btn" title="Refresh file list" aria-label="Refresh file list">
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <polyline points="23 4 23 10 17 10"/><path d="M20.49 15a9 9 0 1 1-2.12-9.36L23 10"/>
+              </svg>
+            </button>
+          </div>
+        </div>
+        <div class="sidebar-dir-path" id="sidebar-dir-path" title=""></div>
+        <ul id="file-list" class="file-list"></ul>
+      </aside>
+      <div class="sidebar-resize" id="sidebar-resize" aria-hidden="true"></div>
       <div id="editor" class="editor-container" aria-label="Markdown editor"></div>
     </main>
 
