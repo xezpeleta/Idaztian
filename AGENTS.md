@@ -12,8 +12,9 @@ Python 3.10.12 and uv 0.7.3 are available. Use `uv` for Python dependency manage
 
 This is a monorepo with the following workspaces:
 - `packages/idaztian/` — The editor framework library (npm package)
-- `idatzi/` — The Electron-based desktop markdown editor app
 - `examples/` — Integration examples
+
+The **idatzi** desktop app has been extracted to its own repository: [xezpeleta/idatzi](https://github.com/xezpeleta/idatzi)
 
 ## Docker
 

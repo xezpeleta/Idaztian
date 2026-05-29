@@ -6,8 +6,8 @@
     "examples/*"
   ],
   "scripts": {
-    "dev": "npm run dev --workspace=idatzi",
-    "build": "npm run build --workspace=packages/idaztian && npm run build --workspace=idatzi",
+    "dev": "npm run dev --workspace=packages/idaztian",
+    "build": "npm run build --workspace=packages/idaztian",
     "build:lib": "npm run build --workspace=packages/idaztian",
     "test": "npm run test --workspace=packages/idaztian",
     "lint": "tsc --noEmit"

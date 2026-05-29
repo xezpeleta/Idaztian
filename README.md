@@ -40,11 +40,10 @@ For more information, see [API Documentation](https://xezpeleta.github.io/Idazti
 
 ## Idatzi Desktop App
 
-**Idatzi** is a desktop markdown editor built with Electron and the Idaztian framework. It provides a full-featured editing experience with native file dialogs, local persistence, and a dark-themed UI.
-
-### Run Idatzi
+**[Idatzi](https://github.com/xezpeleta/idatzi)** is a desktop markdown editor built with Electron and the Idaztian framework. It provides a full-featured editing experience with native file dialogs, a sidebar file browser, local persistence, and a dark-themed UI.
 
 ```bash
+git clone https://github.com/xezpeleta/idatzi.git
 cd idatzi
 npm install
 npm run dev
