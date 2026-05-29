@@ -422,42 +422,51 @@ editor.on('ready', () => {});
 
 ---
 
-## 7. Demo Application
+## 7. Idatzi Desktop Application
 
-A self-contained single-page application showcasing the framework.
+A full-featured **Electron desktop app** that showcases the Idaztian framework as a native application.
 
 ### Features
 
 | Feature | Description |
 |---|---|
 | Full editor | Idaztian editor with all extensions enabled |
-| File open | HTML `<input type="file">` to open `.md` files |
-| File download | Download current content as `.md` file |
+| File open | Native Electron `dialog.showOpenDialog` via IPC |
+| File download | Native Electron `dialog.showSaveDialog` via IPC |
 | Word count | Displayed in a status bar |
 | Keyboard shortcuts help | Modal showing available shortcuts |
-| Responsive | Usable on tablets (desktop-first) |
+| Local persistence | Backend HTTP server + localStorage fallback |
+| Frameless dark window | Custom title bar with window controls |
 
 ### Layout
 
 ```
-┌─────────────────────────────────────────────────────┐
-│  Idaztian Demo   [Open] [Download] [Shortcuts]  ⚙  │
-├─────────────────────────────────────────────────────┤
-│                                                     │
-│                                                     │
-│              Full-width editor area                 │
-│           (Idaztian editor component)               │
-│                                                     │
-│                                                     │
-│                                                     │
-├─────────────────────────────────────────────────────┤
-│  Words: 342  |  Characters: 1,847  |  Lines: 48    │
-└─────────────────────────────────────────────────────┘
+┌──────────────────────────────────────────────┐
+│  Idatzi      [—] [□] [✕]                    │
+├──────────────────────────────────────────────┤
+│  ✍ Idatzi  Just writing. [New][Open][Save]  │
+├──────────────────────────────────────────────┤
+│                                              │
+│           Full-width editor area             │
+│        (Idaztian editor component)           │
+│                                              │
+│                                              │
+├──────────────────────────────────────────────┤
+│  Words: 342  ·  Characters: 1,847  ·  Lines: 48  │
+└──────────────────────────────────────────────┘
+```
+
+### Quick Start
+
+```bash
+cd idatzi
+npm install
+npm run dev
 ```
 
 ### Visual Style
 
-The demo app follows Obsidian's default dark theme:
+The app follows Obsidian's default dark theme:
 
 - Background: `#1e1e1e` (editor), `#181818` (chrome)
 - Text: `#dcddde`
@@ -744,7 +753,7 @@ import { IdaztianEditor } from 'idaztian';
 
 ### Phase 2.5 — Framework Configuration & Examples (v0.6) ✅
 
-- [x] Rename `demo` app to `idatz` as the main showcase
+- [x] Rename `demo` app to `idatzi` as the main Electron desktop showcase
 - [x] Create `examples/simple-editor` for integration demonstration
 - [x] Robust Configuration API (toggles for theme, readonly mode, toolbar)
 - [x] Basic test suite and DOM testing setup

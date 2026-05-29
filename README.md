@@ -4,7 +4,7 @@
 
 An open-source JavaScript framework that provides an Obsidian-style **live-preview markdown editor** for the web. Renders markdown formatting inline as you type — hiding raw syntax unless your cursor is on the formatted element.
 
-Integrate it in your note taking app, blog, documentation site, or any web application that needs a markdown editor. You can also use it as a **read-only markdown viewer**.  
+Integrate it in your note taking app, blog, documentation site, or any web application that needs a markdown editor. You can also use it as a **read-only markdown viewer**.
 
 ## Features
 
@@ -15,11 +15,6 @@ Integrate it in your note taking app, blog, documentation site, or any web appli
 - 🌙 **Themes** — themes support
 - 🎨 **Customizable** — customize the editor to your needs
 - 🔓 **GPL-3.0** — free and open source
-
-## Screenshot
-
-![Idatz app screenshot](docs/idatz_screenshot.png)
-
 
 ## Quick Start
 
@@ -43,21 +38,17 @@ const editor = new IdaztianEditor({
 
 For more information, see [API Documentation](https://xezpeleta.github.io/Idaztian/docs/) and [Examples](https://xezpeleta.github.io/Idaztian/examples/).
 
-## Idatz App
+## Idatzi Desktop App
 
-The **Idatz App** showcases the full power of the Idaztian Framework in a comprehensive editor.
+**Idatzi** is a desktop markdown editor built with Electron and the Idaztian framework. It provides a full-featured editing experience with native file dialogs, local persistence, and a dark-themed UI.
 
-🌍 **[Launch Live Demo](https://xezpeleta.github.io/Idaztian/)**
-
-
-### Run Idatz editor locally using Docker
+### Run Idatzi
 
 ```bash
-cd idatz
-docker compose up -d
+cd idatzi
+npm install
+npm run dev
 ```
-
-Visit [http://localhost:5174](http://localhost:5174)
 
 ## Examples
 

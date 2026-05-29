@@ -3,12 +3,12 @@
   "private": true,
   "workspaces": [
     "packages/idaztian",
-    "idatz",
+    "idatzi",
     "examples/*"
   ],
   "scripts": {
-    "dev": "npm run dev --workspace=idatz",
-    "build": "npm run build --workspace=packages/idaztian && npm run build --workspace=idatz && npm run build --workspace=examples/simple-editor",
+    "dev": "npm run dev --workspace=idatzi",
+    "build": "npm run build --workspace=packages/idaztian && npm run build --workspace=idatzi",
     "build:lib": "npm run build --workspace=packages/idaztian",
     "test": "npm run test --workspace=packages/idaztian",
     "lint": "tsc --noEmit"
