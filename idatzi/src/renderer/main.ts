@@ -268,6 +268,31 @@ async function loadContent(): Promise<string | null> {
 // ──────────────────────────────────────────────────────────────────
 // File operations (via Electron native dialogs)
 // ──────────────────────────────────────────────────────────────────
+
+/**
+ * Handle a path received from CLI or macOS open-file.
+ * If it's a directory, browse it. If it's a file, open it.
+ */
+async function handleOpenPath(rawPath: string) {
+  const stat = await window.idatzi.statPath(rawPath);
+  if (!stat) {
+    console.error('Cannot access path:', rawPath);
+    return;
+  }
+  if (stat.type === 'dir') {
+    currentDir = rawPath;
+    currentFilePath = '';
+    await refreshDir();
+  } else {
+    // Set sidebar to the file's parent directory
+    const parent = getParentDir(rawPath);
+    if (parent) {
+      currentDir = parent;
+    }
+    await openSidebarFile(rawPath);
+  }
+}
+
 async function handleOpen() {
   const result = await window.idatzi.openFile();
   if (result) {
@@ -353,9 +378,20 @@ window.idatzi.onThemeChange((isDark: boolean) => {
   // Store reference for sidebar use
   (window as any).__editor = editor;
 
-  // Initialize sidebar directory
-  currentDir = getDefaultDir();
-  await refreshDir();
+  // Handle open-path (CLI argument / macOS open-file)
+  const openPath = await window.idatzi.getOpenPath();
+  if (openPath) {
+    await handleOpenPath(openPath);
+  } else {
+    // Initialize sidebar directory only if no path was provided
+    currentDir = getDefaultDir();
+    await refreshDir();
+  }
+
+  // Listen for subsequent open-file events (macOS: open while running)
+  window.idatzi.onOpenPath((filePath: string) => {
+    handleOpenPath(filePath);
+  });
 
   // Record editor-init milestone for startup metrics
   await window.idatzi.recordEditorInit();

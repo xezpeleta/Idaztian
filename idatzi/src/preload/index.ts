@@ -1,6 +1,9 @@
 import { contextBridge, ipcRenderer } from 'electron';
 
 export interface IdatziAPI {
+  // Open path (CLI argument / macOS open-file)
+  getOpenPath: () => Promise<string | null>;
+  onOpenPath: (callback: (filePath: string) => void) => () => void;
   getBackendStatus: () => Promise<'connected' | 'disconnected' | 'starting'>;
   startBackend: () => Promise<string>;
   stopBackend: () => Promise<string>;
@@ -11,6 +14,7 @@ export interface IdatziAPI {
   listDir: (dirPath: string) => Promise<{ name: string; path: string; type: 'file' | 'dir' }[]>;
   // File operations (Electron native dialogs)
   readFile: (filePath: string) => Promise<string | null>;
+  statPath: (filePath: string) => Promise<{ type: 'file' | 'dir' } | null>;
   openFile: () => Promise<{ content: string; filename: string } | null>;
   saveFile: (content: string, defaultName: string) => Promise<string | null>;
   // Content persistence via backend
@@ -37,6 +41,12 @@ export interface StartupMetrics {
 }
 
 const api: IdatziAPI = {
+  getOpenPath: () => ipcRenderer.invoke('app:get-open-path'),
+  onOpenPath: (callback) => {
+    const listener = (_event: Electron.IpcRendererEvent, filePath: string) => callback(filePath);
+    ipcRenderer.on('open-path', listener);
+    return () => ipcRenderer.removeListener('open-path', listener);
+  },
   getBackendStatus: () => ipcRenderer.invoke('backend:status'),
   startBackend: () => ipcRenderer.invoke('backend:start'),
   stopBackend: () => ipcRenderer.invoke('backend:stop'),
@@ -49,6 +59,7 @@ const api: IdatziAPI = {
   selectDir: () => ipcRenderer.invoke('dir:select'),
   listDir: (dirPath: string) => ipcRenderer.invoke('dir:list', dirPath),
   readFile: (filePath: string) => ipcRenderer.invoke('file:read', filePath),
+  statPath: (filePath: string) => ipcRenderer.invoke('file:stat', filePath),
   openFile: () => ipcRenderer.invoke('file:open'),
   saveFile: (content: string, defaultName: string) => ipcRenderer.invoke('file:save', content, defaultName),
   saveToBackend: (content: string) => ipcRenderer.invoke('backend:save-content', content),
