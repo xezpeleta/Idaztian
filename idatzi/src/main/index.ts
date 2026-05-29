@@ -8,6 +8,26 @@ import { recordBackendReady, recordEditorInit, getStartupMetrics, StartupMetrics
 const VITE_DEV_URL = 'http://localhost:5173';
 const IS_DEV = process.env.NODE_ENV !== 'production';
 
+// ---- Open-path: capture CLI argument / macOS open-file event ----
+let openPath: string | null = null;
+
+function resolveOpenPath(rawPath: string): string {
+  return path.resolve(rawPath);
+}
+
+// macOS: app is already running and user opens a file from Finder
+app.on('open-file', (event, filePath) => {
+  event.preventDefault();
+  openPath = resolveOpenPath(filePath);
+  // If the window is already loaded, push the path to the renderer
+  if (mainWindow && !mainWindow.isDestroyed()) {
+    mainWindow.webContents.send('open-path', openPath);
+  }
+});
+
+// ---- IPC handlers: Open path ----
+ipcMain.handle('app:get-open-path', () => openPath);
+
 // ---- IPC handlers: Backend ----
 ipcMain.handle('backend:status', () => {
   return getStatus();
@@ -94,6 +114,15 @@ ipcMain.handle('file:read', async (_event, filePath: string) => {
   try {
     const content = fs.readFileSync(filePath, 'utf-8');
     return content;
+  } catch {
+    return null;
+  }
+});
+
+ipcMain.handle('file:stat', async (_event, filePath: string) => {
+  try {
+    const stat = fs.statSync(filePath);
+    return { type: stat.isDirectory() ? 'dir' : 'file' as 'dir' | 'file' };
   } catch {
     return null;
   }
@@ -218,6 +247,14 @@ function createWindow(): void {
 
 app.whenReady().then(async () => {
   createWindow();
+
+  // Parse CLI argument: skip electron binary, script path, and electron flags
+  const args = process.argv.slice(1).filter(a => !a.startsWith('-'));
+  // args[0] is the main script, args[1] would be the user-provided path
+  const userArg = args[1];
+  if (userArg && !openPath) {
+    openPath = resolveOpenPath(userArg);
+  }
 
   // Start backend automatically on app launch
   await startBackend();
