@@ -312,3 +312,77 @@ kbd {
 ::-webkit-scrollbar-thumb:hover {
   background: #444;
 }
+
+/* ── Custom title bar (frameless window) ── */
+:root {
+  --title-bar-bg: #181825;
+  --title-bar-fg: #cdd6f4;
+}
+
+.title-bar {
+  display: flex;
+  align-items: center;
+  height: 36px;
+  background: var(--title-bar-bg);
+  color: var(--title-bar-fg);
+  user-select: none;
+  flex-shrink: 0;
+  -webkit-app-region: drag;
+}
+
+.title-bar-drag {
+  flex: 1;
+  height: 100%;
+  display: flex;
+  align-items: center;
+  padding-left: 12px;
+}
+
+.title-bar-title {
+  font-size: 13px;
+  font-weight: 500;
+  opacity: 0.8;
+}
+
+.title-bar-controls {
+  display: flex;
+  height: 100%;
+  -webkit-app-region: no-drag;
+}
+
+.title-btn {
+  width: 46px;
+  height: 100%;
+  border: none;
+  background: transparent;
+  color: inherit;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: background 0.1s;
+}
+
+.title-btn:hover {
+  background: rgba(255, 255, 255, 0.1);
+}
+
+.title-btn-close:hover {
+  background: #e81123;
+  color: #fff;
+}
+
+/* Light theme overrides */
+[data-theme="light"] {
+  --title-bar-bg: #e0e0e0;
+  --title-bar-fg: #333333;
+}
+
+[data-theme="light"] .title-btn:hover {
+  background: rgba(0, 0, 0, 0.08);
+}
+
+[data-theme="light"] .title-btn-close:hover {
+  background: #e81123;
+  color: #fff;
+}

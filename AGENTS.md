@@ -2,54 +2,19 @@
 
 ## Node / npm
 
-The host machine does not have an up-to-date Node.js installation.
-**Always run Node and npm commands inside a Docker container** using a recent official Node image.
+Node v24.16.0 and npm 11.13.0 are available on the host. Run Node/npm commands directly.
 
-Use the following pattern for any `node` or `npm` command:
+## Python
 
-```bash
-docker run --rm -it \
-  -v "$(pwd)":/app \
-  -w /app \
-  node:lts \
-  npm <command>
-```
+Python 3.10.12 and uv 0.7.3 are available. Use `uv` for Python dependency management.
 
-Examples:
+## Project Structure
 
-```bash
-# Install dependencies
-docker run --rm -it -v "$(pwd)":/app -w /app node:lts npm install
+This is a monorepo with the following workspaces:
+- `packages/idaztian/` — The editor framework library (npm package)
+- `idatzi/` — The Electron-based desktop markdown editor app
+- `examples/` — Integration examples
 
-# Run a script
-docker run --rm -it -v "$(pwd)":/app -w /app node:lts npm run build
+## Docker
 
-# Run an arbitrary node script
-docker run --rm -it -v "$(pwd)":/app -w /app node:lts node script.js
-```
-
-> **Note:** Replace `node:lts` with a specific version tag (e.g. `node:22`) if the project requires a pinned version.
-
-## Docker Service Management
-
-When starting a service (e.g., `npm run dev`), always follow these steps:
-
-1.  **Check if the container is already running:**
-    ```bash
-    docker ps --filter "name=<container_name>"
-    ```
-
-2.  **Check if the port is free:**
-    ```bash
-    netstat -tuln | grep <port>
-    ```
-    (or generic prompt check if `netstat` is unavailable, but prioritize clean environment).
-
-3.  **If running or port occupied:**
-    - Stop the existing container: `docker stop <container_name>`
-    - If needed, remove it: `docker rm <container_name>`
-
-4.  **Start the new container:**
-    ```bash
-    docker run --rm -d -p <port>:<port> --name <container_name> -v "$(pwd)":/app -w /app node:lts npm run dev
-    ```
+Docker is available but should only be used when specifically needed (e.g., running services that require isolation).

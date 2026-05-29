@@ -1,6 +1,6 @@
 import { Range, StateField } from '@codemirror/state';
 import { EditorState } from '@codemirror/state';
-import { Decoration, DecorationSet, EditorView, WidgetType } from '@codemirror/view';
+import { Decoration, DecorationSet, EditorView, WidgetType, keymap } from '@codemirror/view';
 import { syntaxTree } from '@codemirror/language';
 import {
     TableData, LineInfo, parseCells, isSeparatorLine,
@@ -136,6 +136,8 @@ class TableWidget extends WidgetType {
             refs.data = this.data;
             refs.widget = this;
         }
+        // Keep the lookup attribute in sync with the current document position
+        dom.dataset.tableFrom = String(this.data.nodeFrom);
 
         const ths = Array.from(tableEl.querySelectorAll<HTMLElement>('th.idz-table-th'));
         const trs = Array.from(
@@ -168,6 +170,7 @@ class TableWidget extends WidgetType {
         // CM6 holds a reference to this element; updateDOM receives it.
         const outer = document.createElement('div');
         outer.className = 'idz-table-outer';
+        outer.dataset.tableFrom = String(this.data.nodeFrom);
 
         // Mutable refs — stored on outer (what updateDOM receives).
         const refs: TableRefs = { data: this.data, widget: this };
@@ -291,6 +294,27 @@ class TableWidget extends WidgetType {
                     cell.blur();
                 }
             }
+            if (e.key === 'ArrowUp' || e.key === 'ArrowDown') {
+                e.preventDefault();
+                const currentColIdx = parseInt(cell.dataset.colIdx ?? '0', 10);
+                const currentRowIdx = parseInt(cell.dataset.rowIdx ?? '-1', 10);
+                const targetRowIdx = e.key === 'ArrowUp' ? currentRowIdx - 1 : currentRowIdx + 1;
+                const targetCell = tableEl.querySelector<HTMLElement>(
+                    `[data-row-idx="${targetRowIdx}"][data-col-idx="${currentColIdx}"]`
+                );
+                if (targetCell) {
+                    targetCell.focus();
+                    selectAll(targetCell);
+                } else {
+                    // Edge of table — exit to the CM6 editor line before/after the table
+                    const exitPos = e.key === 'ArrowDown'
+                        ? Math.min(refs.data.nodeTo + 1, view.state.doc.length)
+                        : Math.max(refs.data.nodeFrom - 1, 0);
+                    cell.blur();
+                    view.focus();
+                    view.dispatch({ selection: { anchor: exitPos }, scrollIntoView: true });
+                }
+            }
             if (e.key === 'Enter' || e.key === 'Escape') {
                 e.preventDefault();
                 cell.blur();
@@ -378,6 +402,89 @@ const tableDecorationsField = StateField.define<DecorationSet>({
     },
 });
 
+// ── CM6-level arrow-key keymap ─────────────────────────────────────────────
+// When the cursor is in text immediately above or below a table widget block,
+// pressing ArrowUp/ArrowDown should enter the table (last/first row) rather
+// than skipping the entire block in one keystroke.
+
+function findTableWidgetNear(view: EditorView, direction: 'up' | 'down'): HTMLTableElement | null {
+    const sel = view.state.selection.main;
+    const cursorLine = view.state.doc.lineAt(sel.head);
+
+    // The line we want to check for adjacency to a table block
+    const targetPos = direction === 'up'
+        ? cursorLine.from - 1   // position just before this line = end of previous line
+        : cursorLine.to + 1;    // position just after this line = start of next line
+
+    if (targetPos < 0 || targetPos > view.state.doc.length) return null;
+
+    // Check if there is a table decoration covering that position
+    const decos = view.state.field(tableDecorationsField, false);
+    if (!decos) return null;
+
+    let found: HTMLTableElement | null = null;
+    decos.between(targetPos - 1, targetPos + 1, (from, _to) => {
+        if (found) return false;
+        // Find the rendered widget DOM using the data-table-from attribute stamped in toDOM()
+        const outer = view.dom.querySelector<HTMLElement>(`[data-table-from="${from}"]`);
+        if (!outer) return;
+        const tableEl = outer.querySelector<HTMLTableElement>('table.idz-table');
+        if (tableEl) found = tableEl;
+    });
+    return found;
+}
+
+function focusTableEdge(
+    tableEl: HTMLTableElement,
+    direction: 'up' | 'down',
+    cursorX: number,
+): boolean {
+    // Determine which row to target: last row for ArrowUp, first data row for ArrowDown
+    const rows = Array.from(
+        tableEl.querySelectorAll<HTMLElement>('tr:not(.idz-table-ghost-row)')
+    );
+    if (rows.length === 0) return false;
+    const targetRow = direction === 'up' ? rows[rows.length - 1] : rows[0];
+    const cells = Array.from(targetRow.querySelectorAll<HTMLElement>('th.idz-table-th, td.idz-table-td'));
+    if (cells.length === 0) return false;
+
+    // Pick the cell whose horizontal centre is closest to the cursor's x position
+    let bestCell = cells[0];
+    let bestDist = Infinity;
+    for (const c of cells) {
+        const rect = c.getBoundingClientRect();
+        const cx = rect.left + rect.width / 2;
+        const dist = Math.abs(cx - cursorX);
+        if (dist < bestDist) { bestDist = dist; bestCell = c; }
+    }
+    bestCell.focus();
+    selectAll(bestCell);
+    return true;
+}
+
+const tableArrowKeymap = keymap.of([
+    {
+        key: 'ArrowUp',
+        run(view) {
+            const tableEl = findTableWidgetNear(view, 'up');
+            if (!tableEl) return false;
+            const coords = view.coordsAtPos(view.state.selection.main.head);
+            const cursorX = coords ? (coords.left + coords.right) / 2 : 0;
+            return focusTableEdge(tableEl, 'up', cursorX);
+        },
+    },
+    {
+        key: 'ArrowDown',
+        run(view) {
+            const tableEl = findTableWidgetNear(view, 'down');
+            if (!tableEl) return false;
+            const coords = view.coordsAtPos(view.state.selection.main.head);
+            const cursorX = coords ? (coords.left + coords.right) / 2 : 0;
+            return focusTableEdge(tableEl, 'down', cursorX);
+        },
+    },
+]);
+
 export function tablesExtension() {
-    return [tableDecorationsField];
+    return [tableDecorationsField, tableArrowKeymap];
 }

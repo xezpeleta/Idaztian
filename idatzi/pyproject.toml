@@ -1,0 +1,6 @@
+[project]
+name = "idatzi"
+version = "0.1.0"
+description = "Electron migration spike — Idatz desktop prototype (Python helpers)"
+requires-python = ">=3.10"
+dependencies = []
