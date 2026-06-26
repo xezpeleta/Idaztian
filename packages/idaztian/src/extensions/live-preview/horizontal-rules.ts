@@ -1,70 +1,87 @@
-import { Range } from '@codemirror/state';
-import { Decoration, DecorationSet, EditorView, ViewPlugin, ViewUpdate } from '@codemirror/view';
+import { Range, StateField, EditorState } from '@codemirror/state';
+import { Decoration, DecorationSet, EditorView, WidgetType } from '@codemirror/view';
 import { syntaxTree } from '@codemirror/language';
-import { isCursorInNodeLines } from '../../utils/cursor';
 
 /**
  * Live-preview extension for horizontal rules (thematic breaks).
  *
- * Behavior:
- * - Cursor away: applies a CSS class that renders the line as an <hr>-like
- *   visual using CSS (display:none + ::before pseudo-element trick via line deco)
- * - Cursor on line: shows raw syntax
+ * Uses a block widget (via StateField) instead of CSS line decorations.
+ * This ensures CM6's HeightOracle properly tracks the HR's visual height
+ * and prevents mouse-click position drift after horizontal rules.
  *
- * NOTE: Decoration.replace() with block:true must NOT be used in ViewPlugins
- * because it can span line breaks. We use Decoration.line() instead.
+ * When the cursor is on the HR line, raw syntax is shown.
+ * When the cursor is away, a visual <hr> replaces the text.
  */
 
-
-function buildHrDecorations(view: EditorView): DecorationSet {
-    const decorations: Range<Decoration>[] = [];
-    const state = view.state;
-
-    for (const { from, to } of view.visibleRanges) {
-        syntaxTree(state).iterate({
-            from,
-            to,
-            enter(node) {
-                if (node.name === 'HorizontalRule') {
-                    const cursorAway = !isCursorInNodeLines(state, node.from, node.to);
-                    const line = state.doc.lineAt(node.from);
-
-                    if (cursorAway) {
-                        // Use a line decoration to hide the text and show the HR via CSS
-                        decorations.push(
-                            Decoration.line({ class: 'idz-hr-line' }).range(line.from, line.from)
-                        );
-                    } else {
-                        decorations.push(
-                            Decoration.mark({ class: 'idz-hr-syntax' }).range(node.from, node.to)
-                        );
-                    }
-                }
-            },
-        });
+class HorizontalRuleWidget extends WidgetType {
+    eq(other: WidgetType): boolean {
+        return other instanceof HorizontalRuleWidget;
     }
+
+    toDOM(): HTMLElement {
+        const hr = document.createElement('hr');
+        hr.className = 'idz-hr';
+        return hr;
+    }
+
+    get estimatedHeight(): number {
+        // A visual HR: margin 1.5em top + 1px border + 1.5em bottom
+        // At 16px font: 24px + 1px + 24px = 49px
+        return 49;
+    }
+
+    ignoreEvent(): boolean { return true; }
+}
+
+function buildHrDecorations(state: EditorState): DecorationSet {
+    const decorations: Range<Decoration>[] = [];
+
+    syntaxTree(state).iterate({
+        from: 0,
+        to: state.doc.length,
+        enter(node) {
+            if (node.name !== 'HorizontalRule') return;
+            const line = state.doc.lineAt(node.from);
+            const sel = state.selection.main;
+            const cursorOnLine = sel.from >= line.from && sel.from <= line.to;
+
+            if (cursorOnLine) {
+                // Cursor is on the line — show raw syntax (no widget)
+                decorations.push(
+                    Decoration.mark({ class: 'idz-hr-syntax' }).range(node.from, node.to)
+                );
+            } else {
+                // Cursor away — replace with visual <hr> widget
+                decorations.push(
+                    Decoration.replace({
+                        widget: new HorizontalRuleWidget(),
+                        block: true,
+                    }).range(node.from, node.to)
+                );
+            }
+            return false;
+        },
+    });
 
     decorations.sort((a, b) => a.from - b.from || a.value.startSide - b.value.startSide);
     return Decoration.set(decorations, true);
 }
 
-const hrPlugin = ViewPlugin.fromClass(
-    class {
-        decorations: DecorationSet;
-
-        constructor(view: EditorView) {
-            this.decorations = buildHrDecorations(view);
-        }
-
-        update(update: ViewUpdate) {
-            if (update.docChanged || update.selectionSet || update.viewportChanged) {
-                this.decorations = buildHrDecorations(update.view);
-            }
-        }
+const hrField = StateField.define<DecorationSet>({
+    create(state) {
+        return buildHrDecorations(state);
     },
-    { decorations: (v) => v.decorations }
-);
+    update(decos, tr) {
+        if (tr.docChanged || tr.selection || syntaxTree(tr.state) !== syntaxTree(tr.startState)) {
+            return buildHrDecorations(tr.state);
+        }
+        return decos;
+    },
+    provide(field) {
+        return EditorView.decorations.from(field);
+    },
+});
 
 export function horizontalRulesExtension() {
-    return [hrPlugin];
+    return [hrField];
 }
