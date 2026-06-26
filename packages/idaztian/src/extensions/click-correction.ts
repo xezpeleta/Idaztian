@@ -25,11 +25,13 @@ module impl {
         constructor(readonly view: EditorView) {
             editorView = view;
             view.dom.addEventListener('mousedown', onMouseDown, true);
+            view.dom.addEventListener('keydown', onKeyDown, true);
         }
 
         destroy() {
             editorView = null;
             this.view.dom.removeEventListener('mousedown', onMouseDown, true);
+            this.view.dom.removeEventListener('keydown', onKeyDown, true);
         }
 
         // eslint-disable-next-line @typescript-eslint/no-unused-vars
@@ -39,6 +41,23 @@ module impl {
     function onMouseDown(e: MouseEvent) {
         downEvent = e;
         setTimeout(correctPosition, 0);
+    }
+
+    function onKeyDown(e: KeyboardEvent) {
+        if (!editorView) return;
+        if (e.key !== 'ArrowUp' && e.key !== 'ArrowDown') return;
+        // Log state AFTER CM6 processes the key (next microtask)
+        setTimeout(() => {
+            if (!editorView) return;
+            const { state } = editorView;
+            const head = state.selection.main.head;
+            const line = state.doc.lineAt(head);
+            const col = head - line.from;
+            debug(
+                `${e.key} → line ${line.number}, col ${col}, pos ${head}/${state.doc.length}:`,
+                JSON.stringify(line.text.slice(0, 60))
+            );
+        }, 0);
     }
 
     function debug(...args: any[]) {
