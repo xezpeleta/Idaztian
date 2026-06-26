@@ -148,6 +148,21 @@ export const ilunabarDarkTheme = EditorView.theme(
             color: 'inherit',
         },
 
+        // ── Hidden marker (invisible but space-preserving) ──────────────────
+        // Used instead of Decoration.replace({}) to avoid cursor column drift
+        // when hiding syntax markers (**, *, _, `, etc.). The text is invisible
+        // but still occupies its natural horizontal space.
+        '.idz-hidden-marker': {
+            color: 'transparent',
+            // Prevent selection and copying of hidden syntax characters
+            userSelect: 'none',
+            // Override inner lezer spans too
+        },
+        '.idz-hidden-marker *': {
+            color: 'transparent',
+            userSelect: 'none',
+        },
+
         // ── Links ───────────────────────────────────────────────────────────
         '.idz-link': {
             color: colors.link,

@@ -2,6 +2,7 @@ import { Range } from '@codemirror/state';
 import { Decoration, DecorationSet, EditorView, ViewPlugin, ViewUpdate, WidgetType } from '@codemirror/view';
 import { syntaxTree } from '@codemirror/language';
 import { isCursorInRange, isCursorInNodeLines } from '../../utils/cursor';
+import { hideRange, showMarker } from '../../utils/decoration';
 
 /**
  * Live-preview extension for inline code and fenced code blocks.
@@ -117,14 +118,15 @@ function buildCodeDecorations(view: EditorView): DecorationSet {
                     );
 
                     if (!cursorOn) {
-                        decorations.push(Decoration.replace({}).range(openFrom, openTo));
+                        // Space-preserving hidden markers
+                        decorations.push(hideRange(openFrom, openTo));
                         if (closeFrom > openTo) {
-                            decorations.push(Decoration.replace({}).range(closeFrom, closeTo));
+                            decorations.push(hideRange(closeFrom, closeTo));
                         }
                     } else {
-                        decorations.push(Decoration.mark({ class: 'idz-marker' }).range(openFrom, openTo));
+                        decorations.push(showMarker(openFrom, openTo));
                         if (closeFrom > openTo) {
-                            decorations.push(Decoration.mark({ class: 'idz-marker' }).range(closeFrom, closeTo));
+                            decorations.push(showMarker(closeFrom, closeTo));
                         }
                     }
                     return false;

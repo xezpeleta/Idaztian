@@ -2,17 +2,16 @@ import { Range } from '@codemirror/state';
 import { Decoration, DecorationSet, EditorView, ViewPlugin, ViewUpdate } from '@codemirror/view';
 import { syntaxTree } from '@codemirror/language';
 import { isCursorInNodeLines } from '../../utils/cursor';
+import { hideRange, showMarker } from '../../utils/decoration';
 
 /**
  * Live-preview extension for ATX headings (# H1 through ###### H6).
  *
  * Behavior:
  * - Always: applies heading size/style CSS class to the heading line
- * - Cursor away from line: hides the `# ` prefix marker
+ * - Cursor away from line: hides the `# ` prefix marker (space-preserving)
  * - Cursor on line: shows the `# ` prefix marker
  */
-
-const headingMark = Decoration.mark({ class: 'idz-heading-marker' });
 
 function buildHeadingDecorations(view: EditorView): DecorationSet {
     const decorations: Range<Decoration>[] = [];
@@ -41,14 +40,12 @@ function buildHeadingDecorations(view: EditorView): DecorationSet {
                     Decoration.mark({ class: `idz-h${level}` }).range(node.from, node.to)
                 );
 
-                // Hide the hash prefix when cursor is away
+                // Hide/show the hash prefix based on cursor proximity.
+                // Uses mark-based hiding (not replace) to preserve horizontal space.
                 if (cursorAway) {
-                    decorations.push(
-                        Decoration.replace({ class: 'idz-heading-marker' }).range(node.from, hashEnd)
-                    );
+                    decorations.push(hideRange(node.from, hashEnd));
                 } else {
-                    // Show the marker styled but visible
-                    decorations.push(headingMark.range(node.from, hashEnd));
+                    decorations.push(showMarker(node.from, hashEnd));
                 }
             },
         });
