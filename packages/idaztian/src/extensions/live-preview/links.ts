@@ -24,8 +24,9 @@ class ImageWidget extends WidgetType {
         super();
     }
 
-    eq(other: ImageWidget): boolean {
-        return other.src === this.src && other.alt === this.alt;
+    eq(other: WidgetType): boolean {
+        return other instanceof ImageWidget &&
+            other.src === this.src && other.alt === this.alt;
     }
 
     toDOM(): HTMLElement {
@@ -38,6 +39,13 @@ class ImageWidget extends WidgetType {
         img.style.margin = '0.5em 0';
         return img;
     }
+
+    coordsAt(dom: HTMLElement, _pos: number): { left: number; right: number; top: number; bottom: number } | null {
+        const rect = dom.getBoundingClientRect();
+        return { left: rect.left, right: rect.right, top: rect.top, bottom: rect.bottom };
+    }
+
+    get estimatedHeight(): number { return -1; }
 
     ignoreEvent(): boolean {
         return false;

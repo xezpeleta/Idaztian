@@ -88,6 +88,8 @@ class AlertHeaderWidget extends WidgetType {
         return div;
     }
 
+    get estimatedHeight(): number { return -1; }
+
     ignoreEvent(): boolean { return true; }
 }
 

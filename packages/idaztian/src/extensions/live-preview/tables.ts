@@ -108,7 +108,8 @@ interface TableRefs {
 class TableWidget extends WidgetType {
     constructor(private readonly data: TableData) { super(); }
 
-    eq(other: TableWidget): boolean {
+    eq(other: WidgetType): boolean {
+        if (!(other instanceof TableWidget)) return false;
         const d = this.data;
         const o = other.data;
         return (
@@ -352,7 +353,21 @@ class TableWidget extends WidgetType {
         return t.closest('[contenteditable="true"]') !== null;
     }
 
-    get estimatedHeight(): number { return -1; }
+    /**
+     * Map a coordinate within the widget to a document position.
+     * Without this, CM6 can't correctly place the cursor when clicking
+     * inside or near the table widget — positions drift after the table.
+     */
+    coordsAt(dom: HTMLElement): { left: number; right: number; top: number; bottom: number } | null {
+        const rect = dom.getBoundingClientRect();
+        return { left: rect.left, right: rect.right, top: rect.top, bottom: rect.bottom };
+    }
+
+    get estimatedHeight(): number {
+        // -1 means CM6 will measure the actual DOM height.
+        // This is correct for tables since their rendered height varies.
+        return -1;
+    }
 }
 
 // ── StateField ─────────────────────────────────────────────────────────────
