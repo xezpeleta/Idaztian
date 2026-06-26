@@ -1,87 +1,103 @@
-import { Range, StateField, EditorState } from '@codemirror/state';
-import { Decoration, DecorationSet, EditorView, WidgetType } from '@codemirror/view';
+import { Range } from '@codemirror/state';
+import { Decoration, DecorationSet, EditorView, ViewPlugin, ViewUpdate, WidgetType } from '@codemirror/view';
 import { syntaxTree } from '@codemirror/language';
 
 /**
  * Live-preview extension for horizontal rules (thematic breaks).
  *
- * Uses a block widget (via StateField) instead of CSS line decorations.
- * This ensures CM6's HeightOracle properly tracks the HR's visual height
- * and prevents cursor navigation issues.
+ * Strategy: mix of Decoration.line() for the visual HR and an inline
+ * zero-width "spacer" widget at the end of the line that sets the correct
+ * line height. This way:
  *
- * When the cursor is on the HR line, raw syntax is shown.
- * When the cursor is away, a visual <hr> replaces the text.
+ * - The HR text ("---") is still editable (cursor can enter the line).
+ * - The line height is set to 49px (matching the HR visual) via the spacer
+ *   widget's estimatedHeight, so CM6's HeightOracle stays accurate.
+ * - No block widget means no cursor navigation issues.
  */
 
-class HorizontalRuleWidget extends WidgetType {
+class HrSpacerWidget extends WidgetType {
     eq(other: WidgetType): boolean {
-        return other instanceof HorizontalRuleWidget;
+        return other instanceof HrSpacerWidget;
     }
 
     toDOM(): HTMLElement {
-        const hr = document.createElement('hr');
-        hr.className = 'idz-hr';
-        return hr;
+        const span = document.createElement('span');
+        span.setAttribute('aria-hidden', 'true');
+        span.style.display = 'inline';
+        return span;
     }
 
+    /**
+     * Set the line height to 49px: 24px top margin + 1px border + 24px bottom.
+     * This tells CM6's HeightOracle this line is tall, so pixel-to-position
+     * mapping stays accurate when navigating across HRs.
+     */
     get estimatedHeight(): number {
-        // A visual HR: margin 1.5em top + 1px border + 1.5em bottom
-        // At 16px font: 24px + 1px + 24px = 49px
         return 49;
     }
 
     ignoreEvent(): boolean { return true; }
 }
 
-function buildHrDecorations(state: EditorState): DecorationSet {
+function buildHrDecorations(view: EditorView): DecorationSet {
     const decorations: Range<Decoration>[] = [];
+    const state = view.state;
 
-    syntaxTree(state).iterate({
-        from: 0,
-        to: state.doc.length,
-        enter(node) {
-            if (node.name !== 'HorizontalRule') return;
-            const line = state.doc.lineAt(node.from);
-            const sel = state.selection.main;
-            const cursorOnLine = sel.from >= line.from && sel.from <= line.to;
+    for (const { from, to } of view.visibleRanges) {
+        syntaxTree(state).iterate({
+            from,
+            to,
+            enter(node) {
+                if (node.name === 'HorizontalRule') {
+                    const line = state.doc.lineAt(node.from);
+                    const sel = state.selection.main;
+                    const cursorOnLine = sel.from >= line.from && sel.from <= line.to;
 
-            if (cursorOnLine) {
-                // Cursor is on the line — show raw syntax (no widget)
-                decorations.push(
-                    Decoration.mark({ class: 'idz-hr-syntax' }).range(node.from, node.to)
-                );
-            } else {
-                // Cursor away — replace with visual <hr> widget
-                decorations.push(
-                    Decoration.replace({
-                        widget: new HorizontalRuleWidget(),
-                        block: true,
-                    }).range(node.from, node.to)
-                );
-            }
-            return false;
-        },
-    });
+                    // Line decoration for the HR visual
+                    decorations.push(
+                        Decoration.line({ class: 'idz-hr-line' }).range(line.from, line.from)
+                    );
+
+                    // Spacer widget to set correct line height for HeightOracle
+                    decorations.push(
+                        Decoration.widget({
+                            widget: new HrSpacerWidget(),
+                            side: 1,
+                        }).range(line.to, line.to)
+                    );
+
+                    // Syntax highlighting when cursor is on the line
+                    if (cursorOnLine) {
+                        decorations.push(
+                            Decoration.mark({ class: 'idz-hr-syntax' }).range(node.from, node.to)
+                        );
+                    }
+                }
+            },
+        });
+    }
 
     decorations.sort((a, b) => a.from - b.from || a.value.startSide - b.value.startSide);
     return Decoration.set(decorations, true);
 }
 
-const hrField = StateField.define<DecorationSet>({
-    create(state) {
-        return buildHrDecorations(state);
-    },
-    update(decos, tr) {
-        if (tr.docChanged || tr.selection || syntaxTree(tr.state) !== syntaxTree(tr.startState)) {
-            return buildHrDecorations(tr.state);
+const hrPlugin = ViewPlugin.fromClass(
+    class {
+        decorations: DecorationSet;
+
+        constructor(view: EditorView) {
+            this.decorations = buildHrDecorations(view);
         }
-        return decos;
+
+        update(update: ViewUpdate) {
+            if (update.docChanged || update.selectionSet || update.viewportChanged) {
+                this.decorations = buildHrDecorations(update.view);
+            }
+        }
     },
-    provide(field) {
-        return EditorView.decorations.from(field);
-    },
-});
+    { decorations: (v) => v.decorations }
+);
 
 export function horizontalRulesExtension() {
-    return [hrField];
+    return [hrPlugin];
 }
