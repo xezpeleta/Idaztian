@@ -345,14 +345,7 @@ export const ilunabarDarkTheme = EditorView.theme(
         },
         // When cursor is away, the line gets this class — we hide the text
         // and show a visual rule via CSS
-        '.idz-hr-line': {
-            fontSize: '0',
-            lineHeight: '0.1em',
-            overflow: 'hidden',
-            borderTop: `1px solid ${colors.hr}`,
-            margin: '0.75em 0',
-            display: 'block',
-        },
+        // Horizontal rule syntax (visible when cursor is on the line)
         '.idz-hr-syntax': {
             color: colors.textFaint,
         },
