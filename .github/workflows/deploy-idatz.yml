@@ -45,24 +45,17 @@ jobs:
       - name: Prepare Pages artifacts
         run: |
           mkdir -p .gh-pages-dist
-          # Copy main Idatz app to root
-          cp -r idatz/dist/* .gh-pages-dist/
-          
-          # Copy simple-editor to examples/simple-editor
-          mkdir -p .gh-pages-dist/examples/simple-editor
-          cp -r examples/simple-editor/dist/* .gh-pages-dist/examples/simple-editor/
-          
-          # Copy html-editor to examples/html-editor
-          mkdir -p .gh-pages-dist/examples/html-editor
-          cp examples/html-editor/index.html .gh-pages-dist/examples/html-editor/
-          
-          # Copy idaztian dist so the html-editor CDN relative links work
-          mkdir -p .gh-pages-dist/packages/idaztian/dist
-          cp -r packages/idaztian/dist/* .gh-pages-dist/packages/idaztian/dist/
-          
-          # Copy API docs
+
+          # Simple editor demo (root of Pages)
+          cp -r examples/simple-editor/dist/* .gh-pages-dist/
+
+          # API docs
           mkdir -p .gh-pages-dist/docs
           cp -r packages/idaztian/docs-dist/* .gh-pages-dist/docs/
+
+          # Package dist for CDN use
+          mkdir -p .gh-pages-dist/packages/idaztian/dist
+          cp -r packages/idaztian/dist/* .gh-pages-dist/packages/idaztian/dist/
 
       - name: Setup Pages
         uses: actions/configure-pages@v5
