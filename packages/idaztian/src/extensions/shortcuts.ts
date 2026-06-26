@@ -381,38 +381,21 @@ export function shortcutsExtension(onSave?: (content: string) => void) {
             ...historyKeymap,
             ...searchKeymap,
 
-            // Override ArrowUp at document end: when cursor is on the trailing
-            // empty line, moveVertically can fail due to height oracle drift from
-            // block widgets. We handle this case explicitly by moving to the end
-            // of the previous line.
+            // ArrowUp from document end: when cursor is at the very end of the
+            // document (the trailing empty line), CM6's moveVertically can fail
+            // due to height oracle drift from block widgets. Handle explicitly:
+            // move to end of previous line.
             {
                 key: 'ArrowUp',
                 run(view) {
                     const { state } = view;
                     const head = state.selection.main.head;
-                    // Only intervene when cursor is at the very end of the document
                     if (head !== state.doc.length) return false;
                     const line = state.doc.lineAt(head);
                     if (line.number <= 1) return false;
                     const prevLine = state.doc.line(line.number - 1);
                     view.dispatch({
-                        selection: { anchor: Math.min(head, prevLine.from + prevLine.length) },
-                        scrollIntoView: true,
-                    });
-                    return true;
-                },
-            },
-            {
-                key: 'ArrowDown',
-                run(view) {
-                    const { state } = view;
-                    const head = state.selection.main.head;
-                    // Only intervene when cursor is at the very start of the document
-                    if (head !== 0) return false;
-                    if (state.doc.lines <= 1) return false;
-                    const nextLine = state.doc.line(2);
-                    view.dispatch({
-                        selection: { anchor: nextLine.from },
+                        selection: { anchor: prevLine.from + prevLine.length },
                         scrollIntoView: true,
                     });
                     return true;

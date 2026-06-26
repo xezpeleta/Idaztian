@@ -362,7 +362,13 @@ class TableWidget extends WidgetType {
      * Ghost row: 24px.
      */
     get estimatedHeight(): number {
-        return (1 + this.data.rows.length) * 36 + 24;
+        return (1 + this.data.rows.length) * 38 + 28;
+    }
+
+    coordsAt(element: HTMLElement): { top: number; bottom: number; left: number; right: number } | null {
+        const rect = element.getBoundingClientRect();
+        if (rect.height === 0) return null;
+        return { top: rect.top, bottom: rect.bottom, left: rect.left, right: rect.right };
     }
 }
 

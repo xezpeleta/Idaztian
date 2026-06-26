@@ -13,8 +13,6 @@ import { EditorView, ViewPlugin, ViewUpdate } from '@codemirror/view';
  * 4. Walk the line's text nodes character-by-character to find the column
  *    closest to the click X position.
  * 5. If CM6 placed the cursor on the wrong line, correct it.
- *
- * Debug logging is enabled during development — remove before release.
  */
 
 module impl {
