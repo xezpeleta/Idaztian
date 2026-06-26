@@ -14,6 +14,7 @@ import { tablesExtension } from './live-preview/tables';
 import { smartPairsExtension } from './smart-pairs';
 import { pasteHandlerExtension } from './paste-handler';
 import { dragDropExtension } from './drag-drop';
+import { clickCorrectionPlugin } from './click-correction';
 import { contextMenuExtension } from './context-menu';
 import { toolbarExtension, DEFAULT_TOOLBAR_ITEMS, ToolbarItemId } from './toolbar';
 
@@ -42,6 +43,9 @@ export function buildExtensions(config: IdaztianExtensionConfig): Extension[] {
         smartPairsExtension(),
         pasteHandlerExtension(),
         dragDropExtension(),
+
+        // Click correction: fixes cursor placement when clicking near block widgets
+        clickCorrectionPlugin(),
     ];
 
     // Math is disabled by default (large KaTeX dependency, lazy-loaded)

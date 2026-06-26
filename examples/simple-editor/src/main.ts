@@ -33,7 +33,8 @@ const editor = new IdaztianEditor({
   initialContent: '# Simple Vite Example\n\nThis is a minimal example demonstrating how to embed **Idaztian** in your web app using Vite and TypeScript.\n\n- It features live-preview out of the box\n- Just import the style and the class, and initialize it.\n- You can optionally enable the toolbar or context menu.',
   toolbar: true,
   readOnly: false,
-  theme: 'light'
+  theme: 'light',
+  lineNumbers: true,
 })
 
 document.getElementById('theme-select')!.addEventListener('change', (e) => {
