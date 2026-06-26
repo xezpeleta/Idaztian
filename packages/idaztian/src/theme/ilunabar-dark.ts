@@ -205,6 +205,8 @@ export const ilunabarDarkTheme = EditorView.theme(
             paddingLeft: '1em',
             paddingRight: '1em',
             display: 'block',
+            // Override .cm-content line-height for tighter code rendering
+            lineHeight: '1.45 !important',
         },
         '.idz-code-first': {
             borderTopLeftRadius: '6px',
