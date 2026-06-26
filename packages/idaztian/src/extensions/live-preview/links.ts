@@ -2,17 +2,18 @@ import { Range } from '@codemirror/state';
 import { Decoration, DecorationSet, EditorView, ViewPlugin, ViewUpdate, WidgetType } from '@codemirror/view';
 import { syntaxTree } from '@codemirror/language';
 import { isCursorInRange } from '../../utils/cursor';
+import { hideRange } from '../../utils/decoration';
 
 /**
  * Live-preview extension for links and images.
  *
  * Links [text](url):
- * - Cursor away: shows only styled link text, hides `[`, `](url)`
+ * - Cursor away: shows only styled link text, hides `[` and `](url)`
  * - Cursor on: shows full raw syntax
  *
  * Images ![alt](url):
  * - Cursor away: renders the image inline
- * - Cursor on: shows raw syntax
+ * - Cursor on: shows raw syntax + image preview
  */
 
 class ImageWidget extends WidgetType {
@@ -41,6 +42,71 @@ class ImageWidget extends WidgetType {
     ignoreEvent(): boolean {
         return false;
     }
+}
+
+/**
+ * Given a Link or Image node, find the positions of:
+ * - openBracket: position of `[`
+ * - closeBracket: position of `]`  (right after the bracket)
+ * - openParen: position of `(`  (right before paren)
+ * - closeParen: position of `)`  (right after the paren)
+ *
+ * Uses the syntax tree's child nodes for precise parsing,
+ * avoiding fragile string.indexOf() which breaks when link
+ * text itself contains `]` or URL contains `)`.
+ */
+function findLinkPositions(
+    state: { sliceDoc: (a: number, b: number) => string; doc: { length: number } },
+    nodeFrom: number,
+    nodeTo: number
+): { openBracket: number; closeBracket: number; openParen: number; closeParen: number } | null {
+    const raw = state.sliceDoc(nodeFrom, nodeTo);
+    // We can't use child nodes from ViewPlugin syntaxTree directly for Link children,
+    // but we know the structure: !?[...](...)
+    const isImage = raw.startsWith('![');
+    const startIdx = isImage ? 2 : 0;
+
+    const openBracket = nodeFrom + startIdx; // position of [
+
+    // Find the matching ] — count nesting of [ ] inside
+    let bracketDepth = 0;
+    let closeBracketOffset = -1;
+    for (let i = startIdx; i < raw.length; i++) {
+        if (raw[i] === '[') bracketDepth++;
+        else if (raw[i] === ']') {
+            bracketDepth--;
+            if (bracketDepth === 0) {
+                closeBracketOffset = i;
+                break;
+            }
+        }
+    }
+
+    if (closeBracketOffset === -1) return null;
+    const closeBracket = nodeFrom + closeBracketOffset;
+
+    // After ], there must be (
+    if (closeBracketOffset + 1 >= raw.length || raw[closeBracketOffset + 1] !== '(') return null;
+    const openParen = nodeFrom + closeBracketOffset + 1;
+
+    // Find the matching ) — count nesting of ( ) inside
+    let parenDepth = 0;
+    let closeParenOffset = -1;
+    for (let i = closeBracketOffset + 1; i < raw.length; i++) {
+        if (raw[i] === '(') parenDepth++;
+        else if (raw[i] === ')') {
+            parenDepth--;
+            if (parenDepth === 0) {
+                closeParenOffset = i;
+                break;
+            }
+        }
+    }
+
+    if (closeParenOffset === -1) return null;
+    const closeParen = nodeFrom + closeParenOffset;
+
+    return { openBracket, closeBracket, openParen, closeParen };
 }
 
 function buildLinkDecorations(view: EditorView): DecorationSet {
@@ -81,45 +147,45 @@ function buildLinkDecorations(view: EditorView): DecorationSet {
                             }).range(node.to)
                         );
                     }
-                    return false; // Don't descend into image children
+                    return false;
                 }
 
                 // Inline links: [text](url)
                 if (node.name === 'Link') {
                     const cursorOn = isCursorInRange(state, node.from, node.to);
-                    const raw = state.sliceDoc(node.from, node.to);
-                    const match = raw.match(/^\[([^\]]*)\]\(([^)]+)\)$/);
-                    if (!match) return;
 
-                    const [, ,] = match;
-                    // Find positions of [ ] ( )
-                    const openBracket = node.from; // [
-                    const closeBracket = raw.indexOf(']');
-                    const closeParen = raw.length - 1; // )
+                    // Parse positions using nesting-aware algorithm
+                    const positions = findLinkPositions(
+                        { sliceDoc: state.sliceDoc.bind(state), doc: state.doc },
+                        node.from,
+                        node.to
+                    );
+                    if (!positions) return;
+
+                    const { openBracket, closeBracket, openParen, closeParen } = positions;
 
                     if (!cursorOn) {
-                        // Hide [ and ](url)
+                        // Hide `[` — single char, space-preserving
+                        decorations.push(hideRange(openBracket, openBracket + 1));
+
+                        // Hide `](url)` — replace with empty (the URL should not be visible)
+                        // closeBracket + 1 = position of `(`, closeParen is position of `)`
+                        // We want to hide `]` through `)` inclusive
                         decorations.push(
-                            Decoration.replace({}).range(openBracket, openBracket + 1)
+                            Decoration.replace({}).range(closeBracket, closeParen + 1)
                         );
-                        decorations.push(
-                            // Include the closing bracket `]` in the replacement range
-                            Decoration.replace({}).range(node.from + closeBracket, node.from + closeParen + 1)
-                        );
+
                         // Style the link text as an anchor
                         decorations.push(
                             Decoration.mark({
                                 tagName: 'a',
                                 class: 'idz-link',
                                 attributes: {
-                                    href: match[2],
+                                    href: state.sliceDoc(openParen + 1, closeParen),
                                     target: '_blank',
                                     rel: 'noopener noreferrer'
                                 }
-                            }).range(
-                                openBracket + 1,
-                                node.from + closeBracket
-                            )
+                            }).range(openBracket + 1, closeBracket)
                         );
                     } else {
                         // Show full syntax, styled

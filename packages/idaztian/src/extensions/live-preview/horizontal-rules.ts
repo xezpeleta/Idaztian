@@ -1,20 +1,43 @@
 import { Range } from '@codemirror/state';
-import { Decoration, DecorationSet, EditorView, ViewPlugin, ViewUpdate } from '@codemirror/view';
+import { Decoration, DecorationSet, EditorView, ViewPlugin, ViewUpdate, WidgetType } from '@codemirror/view';
 import { syntaxTree } from '@codemirror/language';
-import { isCursorInNodeLines } from '../../utils/cursor';
 
 /**
  * Live-preview extension for horizontal rules (thematic breaks).
  *
- * Behavior:
- * - Cursor away: applies a CSS class that renders the line as an <hr>-like
- *   visual using CSS (display:none + ::before pseudo-element trick via line deco)
- * - Cursor on line: shows raw syntax
+ * Strategy: mix of Decoration.line() for the visual HR and an inline
+ * zero-width "spacer" widget at the end of the line that sets the correct
+ * line height. This way:
  *
- * NOTE: Decoration.replace() with block:true must NOT be used in ViewPlugins
- * because it can span line breaks. We use Decoration.line() instead.
+ * - The HR text ("---") is still editable (cursor can enter the line).
+ * - The line height is set to 49px (matching the HR visual) via the spacer
+ *   widget's estimatedHeight, so CM6's HeightOracle stays accurate.
+ * - No block widget means no cursor navigation issues.
  */
 
+class HrSpacerWidget extends WidgetType {
+    eq(other: WidgetType): boolean {
+        return other instanceof HrSpacerWidget;
+    }
+
+    toDOM(): HTMLElement {
+        const span = document.createElement('span');
+        span.setAttribute('aria-hidden', 'true');
+        span.style.display = 'inline';
+        return span;
+    }
+
+    /**
+     * Set the line height to 49px: 24px top margin + 1px border + 24px bottom.
+     * This tells CM6's HeightOracle this line is tall, so pixel-to-position
+     * mapping stays accurate when navigating across HRs.
+     */
+    get estimatedHeight(): number {
+        return 49;
+    }
+
+    ignoreEvent(): boolean { return true; }
+}
 
 function buildHrDecorations(view: EditorView): DecorationSet {
     const decorations: Range<Decoration>[] = [];
@@ -26,15 +49,25 @@ function buildHrDecorations(view: EditorView): DecorationSet {
             to,
             enter(node) {
                 if (node.name === 'HorizontalRule') {
-                    const cursorAway = !isCursorInNodeLines(state, node.from, node.to);
                     const line = state.doc.lineAt(node.from);
+                    const sel = state.selection.main;
+                    const cursorOnLine = sel.from >= line.from && sel.from <= line.to;
 
-                    if (cursorAway) {
-                        // Use a line decoration to hide the text and show the HR via CSS
-                        decorations.push(
-                            Decoration.line({ class: 'idz-hr-line' }).range(line.from, line.from)
-                        );
-                    } else {
+                    // Line decoration for the HR visual
+                    decorations.push(
+                        Decoration.line({ class: 'idz-hr-line' }).range(line.from, line.from)
+                    );
+
+                    // Spacer widget to set correct line height for HeightOracle
+                    decorations.push(
+                        Decoration.widget({
+                            widget: new HrSpacerWidget(),
+                            side: 1,
+                        }).range(line.to, line.to)
+                    );
+
+                    // Syntax highlighting when cursor is on the line
+                    if (cursorOnLine) {
                         decorations.push(
                             Decoration.mark({ class: 'idz-hr-syntax' }).range(node.from, node.to)
                         );

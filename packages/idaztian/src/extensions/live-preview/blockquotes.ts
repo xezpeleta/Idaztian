@@ -2,17 +2,19 @@ import { Range } from '@codemirror/state';
 import { Decoration, DecorationSet, EditorView, ViewPlugin, ViewUpdate } from '@codemirror/view';
 import { syntaxTree } from '@codemirror/language';
 import { isCursorInNodeLines } from '../../utils/cursor';
+import { showMarker } from '../../utils/decoration';
 
 /**
  * Live-preview extension for blockquotes.
  *
  * Behavior:
- * - Cursor away from the blockquote: hides `> ` prefix on each line,
- *   applies blockquote styling
+ * - Cursor away from the blockquote: hides `> ` prefix on each line
+ *   (collapsed to zero width), applies blockquote styling
  * - Cursor on any line of the blockquote: shows `> ` prefix, keeps styling
  *
- * NOTE: Decoration.replace() is only used within a single line (the `> ` prefix),
- * so it never spans line breaks — safe for ViewPlugins.
+ * Note: Uses Decoration.replace({}) (not hideRange) for the same reason as
+ * headings — `> ` is a line-level prefix. There's no cross-line cursor drift
+ * since the cursor is always within the blockquote when it's visible.
  */
 
 function buildBlockquoteDecorations(view: EditorView): DecorationSet {
@@ -45,14 +47,12 @@ function buildBlockquoteDecorations(view: EditorView): DecorationSet {
                             );
 
                             if (!cursorOnBlock) {
-                                // Hide the `> ` marker — stays within the line, safe
+                                // Collapse `> ` prefix to zero width
                                 decorations.push(
-                                    Decoration.replace({ class: 'idz-bq-marker' }).range(line.from, markerEnd)
+                                    Decoration.replace({}).range(line.from, markerEnd)
                                 );
                             } else {
-                                decorations.push(
-                                    Decoration.mark({ class: 'idz-marker' }).range(line.from, markerEnd)
-                                );
+                                decorations.push(showMarker(line.from, markerEnd));
                             }
                         }
 

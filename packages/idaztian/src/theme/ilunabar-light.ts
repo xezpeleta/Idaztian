@@ -37,7 +37,6 @@ export const ilunabarLightTheme = EditorView.theme(
             backgroundColor: colors.bg,
             fontSize: '16px',
             fontFamily: "'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif",
-            height: '100%',
         },
         '.cm-content': {
             caretColor: colors.cursor,
@@ -145,6 +144,21 @@ export const ilunabarLightTheme = EditorView.theme(
         // Force inner lezer spans (e.g. punctuation) to inherit our color
         '.idz-marker *': {
             color: 'inherit',
+        },
+
+        // ── Hidden marker (invisible but space-preserving) ──────────────────
+        // Used instead of Decoration.replace({}) to avoid cursor column drift
+        // when hiding syntax markers (**, *, _, `, etc.). The text is invisible
+        // but still occupies its natural horizontal space.
+        '.idz-hidden-marker': {
+            color: 'transparent',
+            // Prevent selection and copying of hidden syntax characters
+            userSelect: 'none',
+            // Override inner lezer spans too
+        },
+        '.idz-hidden-marker *': {
+            color: 'transparent',
+            userSelect: 'none',
         },
 
         // ── Links ───────────────────────────────────────────────────────────
@@ -289,6 +303,16 @@ export const ilunabarLightTheme = EditorView.theme(
         '.idz-ordered-marker': {
             color: colors.accent,
             fontWeight: '600',
+            marginRight: '0.3em',
+        },
+        // Raw bullet marker (when cursor is on it) — match the widget width
+        '.idz-marker.idz-bullet-raw': {
+            color: colors.accent,
+            fontWeight: '700',
+            display: 'inline-block',
+            // Same width as the bullet widget + margin
+            minWidth: '1.3em',
+            textAlign: 'center',
         },
         '.idz-checkbox': {
             accentColor: colors.accent,

@@ -2,6 +2,7 @@ import { Range } from '@codemirror/state';
 import { Decoration, DecorationSet, EditorView, ViewPlugin, ViewUpdate } from '@codemirror/view';
 import { syntaxTree } from '@codemirror/language';
 import { isCursorInRange } from '../../utils/cursor';
+import { hideRange, showMarker } from '../../utils/decoration';
 
 /**
  * Live-preview extension for emphasis: bold, italic, strikethrough.
@@ -9,6 +10,7 @@ import { isCursorInRange } from '../../utils/cursor';
  * Behavior:
  * - Always: applies bold/italic CSS styling
  * - Cursor away: hides the `**`, `*`, `~~` delimiter markers
+ *   (invisible but space-preserving — no cursor column drift)
  * - Cursor on element: shows the delimiter markers
  */
 
@@ -26,11 +28,16 @@ function buildEmphasisDecorations(view: EditorView): DecorationSet {
                     const text = state.sliceDoc(node.from, node.to);
                     const cursorOn = isCursorInRange(state, node.from, node.to);
 
-                    // Determine delimiter length
-                    let delimLen = 1; // italic *
-                    if (node.name === 'StrongEmphasis') delimLen = 2; // bold **
-                    // Check for bold+italic ***
-                    if (text.startsWith('***') || text.startsWith('___')) delimLen = 3;
+                    // Determine delimiter length from the actual syntax, not assumptions.
+                    // This handles cases like **bold** (2) and ___italic___ (3) correctly.
+                    let delimLen = 0;
+                    if (/^\*{1,3}/.test(text)) {
+                        delimLen = (text.match(/^\*{1,3}/) as RegExpMatchArray)[0].length;
+                    } else if (/^_{1,3}/.test(text)) {
+                        delimLen = (text.match(/^_{1,3}/) as RegExpMatchArray)[0].length;
+                    } else {
+                        delimLen = node.name === 'StrongEmphasis' ? 2 : 1;
+                    }
 
                     const openFrom = node.from;
                     const openTo = node.from + delimLen;
@@ -44,22 +51,22 @@ function buildEmphasisDecorations(view: EditorView): DecorationSet {
                                 ? 'idz-bold'
                                 : 'idz-italic';
 
-                    // Always style the content
+                    // Always style the content (bold/italic visual)
                     decorations.push(
                         Decoration.mark({ class: cssClass }).range(node.from, node.to)
                     );
 
                     if (!cursorOn) {
-                        // Hide delimiters
-                        decorations.push(Decoration.replace({}).range(openFrom, openTo));
+                        // Hide delimiters — space-preserving (no Decoration.replace!)
+                        decorations.push(hideRange(openFrom, openTo));
                         if (closeFrom > openTo) {
-                            decorations.push(Decoration.replace({}).range(closeFrom, closeTo));
+                            decorations.push(hideRange(closeFrom, closeTo));
                         }
                     } else {
                         // Show delimiters styled
-                        decorations.push(Decoration.mark({ class: 'idz-marker' }).range(openFrom, openTo));
+                        decorations.push(showMarker(openFrom, openTo));
                         if (closeFrom > openTo) {
-                            decorations.push(Decoration.mark({ class: 'idz-marker' }).range(closeFrom, closeTo));
+                            decorations.push(showMarker(closeFrom, closeTo));
                         }
                     }
                 }
@@ -78,14 +85,14 @@ function buildEmphasisDecorations(view: EditorView): DecorationSet {
                     );
 
                     if (!cursorOn) {
-                        decorations.push(Decoration.replace({}).range(openFrom, openTo));
+                        decorations.push(hideRange(openFrom, openTo));
                         if (closeFrom > openTo) {
-                            decorations.push(Decoration.replace({}).range(closeFrom, closeTo));
+                            decorations.push(hideRange(closeFrom, closeTo));
                         }
                     } else {
-                        decorations.push(Decoration.mark({ class: 'idz-marker' }).range(openFrom, openTo));
+                        decorations.push(showMarker(openFrom, openTo));
                         if (closeFrom > openTo) {
-                            decorations.push(Decoration.mark({ class: 'idz-marker' }).range(closeFrom, closeTo));
+                            decorations.push(showMarker(closeFrom, closeTo));
                         }
                     }
                 }

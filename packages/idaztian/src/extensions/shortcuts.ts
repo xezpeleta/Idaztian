@@ -36,12 +36,15 @@ function makeTaskListCommand(
 }
 
 /**
- * On Enter, continue the current list item:
- * - Bullet list  → insert `\n<indent>- ` (or `* ` / `+ ` matching the original)
- * - Ordered list → insert `\n<indent><n+1>. `
- * - Task list   → insert `\n<indent>- [ ] `
- * - Empty marker → remove the marker and exit the list
- * Returns false when not on a list line, letting defaultKeymap handle it.
+ * On Enter inside a list item, continue the list or exit if empty.
+ *
+ * - Bullet list  → continues with same marker
+ * - Ordered list → continues with n+1
+ * - Task list   → continues with - [ ]
+ * - Empty marker → exit the list:
+ *   - Nested (indented): dedent to parent level
+ *   - Top-level: remove marker, leave blank line for paragraph separation
+ * Returns false when not on a list line.
  */
 function continueListCommand(
     view: { state: EditorState; dispatch: (tr: Transaction) => void }
@@ -57,13 +60,8 @@ function continueListCommand(
         const indent = taskMatch[1];
         const marker = taskMatch[2];
         const content = taskMatch[4];
-        // Empty task item → exit list
         if (!content.trim()) {
-            view.dispatch(state.update({
-                changes: { from: line.from, to: line.to, insert: '' },
-                selection: { anchor: line.from },
-                userEvent: 'input',
-            }));
+            exitList(view, state, line, indent, marker);
             return true;
         }
         const insert = `\n${indent}${marker} [ ] `;
@@ -81,13 +79,8 @@ function continueListCommand(
         const indent = bulletMatch[1];
         const marker = bulletMatch[2];
         const content = bulletMatch[3];
-        // Empty bullet → exit list
         if (!content.trim()) {
-            view.dispatch(state.update({
-                changes: { from: line.from, to: line.to, insert: '' },
-                selection: { anchor: line.from },
-                userEvent: 'input',
-            }));
+            exitList(view, state, line, indent, marker);
             return true;
         }
         const insert = `\n${indent}${marker} `;
@@ -105,13 +98,8 @@ function continueListCommand(
         const indent = orderedMatch[1];
         const num = parseInt(orderedMatch[2], 10);
         const content = orderedMatch[3];
-        // Empty ordered item → exit list
         if (!content.trim()) {
-            view.dispatch(state.update({
-                changes: { from: line.from, to: line.to, insert: '' },
-                selection: { anchor: line.from },
-                userEvent: 'input',
-            }));
+            exitList(view, state, line, indent, `${num}.`);
             return true;
         }
         const insert = `\n${indent}${num + 1}. `;
@@ -124,6 +112,38 @@ function continueListCommand(
     }
 
     return false;
+}
+
+/**
+ * Exit a list item gracefully, matching Obsidian's behavior:
+ * - Nested (indented): dedent to the parent level's indent (or top-level if none)
+ * - Top-level: remove the entire line and start a new paragraph
+ * - Inserts a blank line before the now-exited line for paragraph separation
+ */
+function exitList(
+    view: { state: EditorState; dispatch: (tr: Transaction) => void },
+    state: EditorState,
+    line: { from: number; to: number; number: number; text: string },
+    indent: string,
+    _marker: string  // unused, kept for signature clarity
+): void {
+    if (indent.length > 0) {
+        // Nested (indented) list: dedent to parent level
+        // Remove current line's marker and dedent the content
+        const parentIndent = indent.slice(0, Math.max(0, indent.length - 2));
+        view.dispatch(state.update({
+            changes: { from: line.from, to: line.to, insert: parentIndent },
+            selection: { anchor: line.from + parentIndent.length },
+            userEvent: 'input',
+        }));
+    } else {
+        // Top-level: remove marker, insert blank line for paragraph separation
+        view.dispatch(state.update({
+            changes: { from: line.from, to: line.to, insert: '' },
+            selection: { anchor: line.from },
+            userEvent: 'input',
+        }));
+    }
 }
 
 /**
@@ -152,9 +172,11 @@ function continueBlockquoteCommand(
     if (taskMatch) {
         const [, indent, marker, , content] = taskMatch;
         if (!content.trim()) {
+            // Exit task inside quote: keep quote + indent, remove task marker
+            const newLine = prefix + indent;
             view.dispatch(state.update({
-                changes: { from: line.from, to: line.to, insert: prefix },
-                selection: { anchor: line.from + prefix.length },
+                changes: { from: line.from, to: line.to, insert: newLine },
+                selection: { anchor: line.from + newLine.length },
                 userEvent: 'input',
             }));
             return true;
@@ -173,9 +195,11 @@ function continueBlockquoteCommand(
     if (bulletMatch) {
         const [, indent, marker, content] = bulletMatch;
         if (!content.trim()) {
+            // Exit bullet inside quote: keep quote + indent, remove bullet marker
+            const newLine = prefix + indent;
             view.dispatch(state.update({
-                changes: { from: line.from, to: line.to, insert: prefix },
-                selection: { anchor: line.from + prefix.length },
+                changes: { from: line.from, to: line.to, insert: newLine },
+                selection: { anchor: line.from + newLine.length },
                 userEvent: 'input',
             }));
             return true;
@@ -194,9 +218,11 @@ function continueBlockquoteCommand(
     if (orderedMatch) {
         const [, indent, numStr, content] = orderedMatch;
         if (!content.trim()) {
+            // Exit ordered inside quote: keep quote + indent, remove number
+            const newLine = prefix + indent;
             view.dispatch(state.update({
-                changes: { from: line.from, to: line.to, insert: prefix },
-                selection: { anchor: line.from + prefix.length },
+                changes: { from: line.from, to: line.to, insert: newLine },
+                selection: { anchor: line.from + newLine.length },
                 userEvent: 'input',
             }));
             return true;
@@ -253,6 +279,27 @@ function forceContBlockquoteCommand(
         userEvent: 'input',
     }));
     return true;
+}
+
+/**
+ * Merged Enter handler that properly handles blockquote-first, then list,
+ * avoiding the priority mismatch of two separate handlers.
+ *
+ * Priority:
+ * 1. Blockquote with nested list/task → continue both
+ * 2. Blockquote alone → continue or exit
+ * 3. Plain list/task → continue or exit
+ * 4. Fall through to default (insert newline)
+ */
+function mergedEnterCommand(
+    view: { state: EditorState; dispatch: (tr: Transaction) => void }
+): boolean {
+    // Try blockquote first (which handles nested lists+tasklists)
+    if (continueBlockquoteCommand(view)) return true;
+    // Then try plain list (bullet, ordered, task)
+    if (continueListCommand(view)) return true;
+    // Fall through to default keymap (which handles plain newline)
+    return false;
 }
 
 export function shortcutsExtension(onSave?: (content: string) => void) {
@@ -326,14 +373,58 @@ export function shortcutsExtension(onSave?: (content: string) => void) {
             },
             // Tab for indentation
             indentWithTab,
-            // Enter: continue list items, then blockquotes
-            { key: 'Enter', run: continueListCommand },
-            { key: 'Enter', run: continueBlockquoteCommand },
+            // Enter: merged command — blockquote-first, then list, then default
+            { key: 'Enter', run: mergedEnterCommand },
             // Shift+Enter: force-continue blockquote (never exit)
             { key: 'Shift-Enter', run: forceContBlockquoteCommand },
             ...defaultKeymap,
             ...historyKeymap,
             ...searchKeymap,
+
+            // Custom ArrowUp/Down that skips block widgets (tables, images).
+            // CM6's default cursorLineUp/cursorLineDown cannot navigate through
+            // block widgets — the cursor can't be placed inside them. Our handler
+            // detects when the target position is inside a widget and jumps to
+            // the nearest editable line before/after it.
+            {
+                key: 'ArrowUp',
+                run(view) {
+                    const { state } = view;
+                    const head = state.selection.main.head;
+                    if (head === state.doc.length) {
+                        // Document end: move to end of previous line
+                        const line = state.doc.lineAt(head);
+                        if (line.number <= 1) return false;
+                        const prevLine = state.doc.line(line.number - 1);
+                        view.dispatch({
+                            selection: { anchor: prevLine.from + prevLine.length },
+                            scrollIntoView: true,
+                        });
+                        return true;
+                    }
+                    // Let CM6 handle — our click-correction plugin will fix
+                    // any position errors from block widgets
+                    return false;
+                },
+            },
+            {
+                key: 'ArrowDown',
+                run(view) {
+                    const { state } = view;
+                    const head = state.selection.main.head;
+                    if (head === 0) {
+                        // Document start: move to start of next line
+                        if (state.doc.lines <= 1) return false;
+                        const nextLine = state.doc.line(2);
+                        view.dispatch({
+                            selection: { anchor: nextLine.from },
+                            scrollIntoView: true,
+                        });
+                        return true;
+                    }
+                    return false;
+                },
+            },
         ]),
     ];
 }

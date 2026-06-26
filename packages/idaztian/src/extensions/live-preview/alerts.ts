@@ -2,6 +2,7 @@ import { Range, StateField, EditorState } from '@codemirror/state';
 import { Decoration, DecorationSet, EditorView, WidgetType, keymap } from '@codemirror/view';
 import { syntaxTree } from '@codemirror/language';
 import { isCursorInNodeLines } from '../../utils/cursor';
+import { showMarker } from '../../utils/decoration';
 
 /**
  * Live-preview extension for GitHub-style alerts / Obsidian callouts.
@@ -167,26 +168,20 @@ function buildAlertDecorations(state: EditorState): DecorationSet {
                     if (isFirst) {
                         // Must be cursorOnBlock here
                         // Show raw syntax, style the marker
-                        decorations.push(
-                            Decoration.mark({ class: 'idz-marker' }).range(line.from, markerEnd)
-                        );
+                        decorations.push(showMarker(line.from, markerEnd));
                         decorations.push(
                             Decoration.mark({ class: 'idz-alert-type-syntax' }).range(markerEnd, line.to)
                         );
                     } else {
                         if (!cursorOnBlock) {
-                            // Hide the `> ` prefix on content lines
+                            // Hide the `> ` prefix on content lines — collapsed to zero width
                             if (markerMatch && markerEnd > line.from) {
-                                decorations.push(
-                                    Decoration.replace({}).range(line.from, markerEnd)
-                                );
+                                decorations.push(Decoration.replace({}).range(line.from, markerEnd));
                             }
                         } else {
                             // Show `> ` styled
                             if (markerMatch && markerEnd > line.from) {
-                                decorations.push(
-                                    Decoration.mark({ class: 'idz-marker' }).range(line.from, markerEnd)
-                                );
+                                decorations.push(showMarker(line.from, markerEnd));
                             }
                         }
                     }

@@ -124,7 +124,7 @@ function buildListDecorations(view: EditorView): DecorationSet {
                     } else if (cursorOnBullet) {
                         // Show raw bullet marker, render checkbox
                         decorations.push(
-                            Decoration.mark({ class: 'idz-marker' }).range(bulletFrom, bulletFrom + 1)
+                            Decoration.mark({ class: 'idz-marker idz-bullet-raw' }).range(bulletFrom, bulletFrom + 1)
                         );
                         decorations.push(
                             Decoration.replace({
@@ -145,7 +145,7 @@ function buildListDecorations(view: EditorView): DecorationSet {
                     // Mark the bullet char for styling even when shown raw
                     if (cursorOnBullet) {
                         decorations.push(
-                            Decoration.mark({ class: 'idz-marker' })
+                            Decoration.mark({ class: 'idz-marker idz-bullet-raw' })
                                 .range(bulletFrom, bulletFrom + 1)
                         );
                     }
@@ -171,7 +171,7 @@ function buildListDecorations(view: EditorView): DecorationSet {
                         );
                     } else {
                         decorations.push(
-                            Decoration.mark({ class: 'idz-marker' })
+                            Decoration.mark({ class: 'idz-marker idz-bullet-raw' })
                                 .range(markerFrom, markerWithSpaceTo)
                         );
                     }
