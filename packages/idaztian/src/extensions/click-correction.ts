@@ -53,37 +53,39 @@ module impl {
         const { state } = view;
         const head = state.selection.main.head;
         const cursorLine = state.doc.lineAt(head);
-        const targetColumn = head - cursorLine.from;
-
-        let expectedLine: number;
-        if (e.key === 'ArrowUp') {
-            if (cursorLine.number <= 1) return;
-            expectedLine = cursorLine.number - 1;
-        } else {
-            if (cursorLine.number >= state.doc.lines) return;
-            expectedLine = cursorLine.number + 1;
-        }
 
         // Let CM6 handle it first, then check & correct afterward
         setTimeout(() => {
             if (!editorView) return;
             const newHead = editorView.state.selection.main.head;
-            const actualLine = editorView.state.doc.lineAt(newHead).number;
+            const newLine = editorView.state.doc.lineAt(newHead);
+            const oldLineNum = cursorLine.number;
+            const actualLine = newLine.number;
+
+            const direction = e.key === 'ArrowUp' ? -1 : 1;
+            const expectedLine = oldLineNum + direction;
+
+            if (expectedLine < 1 || expectedLine > editorView.state.doc.lines) return;
+
+            if (actualLine === expectedLine) return; // CM6 got it right
 
             debug(
                 `${e.key} expected ${expectedLine}, CM6 placed ${actualLine} ` +
                 `(offset ${actualLine - expectedLine})`
             );
 
-            if (actualLine !== expectedLine) {
-                const line = editorView.state.doc.line(expectedLine);
-                const col = Math.min(targetColumn, line.length);
-                editorView.dispatch({
-                    selection: { anchor: line.from + col },
-                    scrollIntoView: true,
-                });
-                debug(`  → corrected to line ${expectedLine}`);
-            }
+            // CM6 placed it wrong — compute correct destination.
+            // Note: if the target line has a block widget (table), placing the
+            // cursor there will cause the table's own ArrowUp/Down handler to
+            // fire on the NEXT keypress, handling widget entry correctly.
+            const targetColumn = head - cursorLine.from;
+            const line = editorView.state.doc.line(expectedLine);
+            const col = Math.min(targetColumn, line.length);
+            editorView.dispatch({
+                selection: { anchor: line.from + col },
+                scrollIntoView: true,
+            });
+            debug(`  → corrected to line ${expectedLine}`);
         }, 0);
     }
 
