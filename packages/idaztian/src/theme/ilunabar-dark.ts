@@ -38,7 +38,6 @@ export const ilunabarDarkTheme = EditorView.theme(
             backgroundColor: colors.bg,
             fontSize: '16px',
             fontFamily: "'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif",
-            height: '100%',
         },
         '.cm-content': {
             caretColor: colors.cursor,
