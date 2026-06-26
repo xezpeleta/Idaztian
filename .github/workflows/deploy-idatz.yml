@@ -36,9 +36,6 @@ jobs:
       - name: Build project
         run: npm run build
 
-      - name: Build simple-editor demo
-        run: npm run build --workspace=examples/simple-editor
-
       - name: Run tests
         run: npm run test:coverage --workspace=packages/idaztian
 
@@ -49,8 +46,20 @@ jobs:
         run: |
           mkdir -p .gh-pages-dist
 
-          # Simple editor demo (root of Pages)
-          cp -r examples/simple-editor/dist/* .gh-pages-dist/
+          # Redirect to idatzi GH Pages (idatzi moved to its own repo)
+          cat > .gh-pages-dist/index.html << 'HTML'
+          <!DOCTYPE html>
+          <html lang="en">
+          <head>
+            <meta charset="UTF-8">
+            <meta http-equiv="refresh" content="0; url=https://xezpeleta.github.io/idatzi/">
+            <title>Idaztian — redirecting to Idatzi demo</title>
+          </head>
+          <body>
+            <p><a href="https://xezpeleta.github.io/idatzi/">Go to Idatzi demo →</a></p>
+          </body>
+          </html>
+          HTML
 
           # API docs
           mkdir -p .gh-pages-dist/docs
