@@ -2,7 +2,7 @@ import { Range, StateField, EditorState } from '@codemirror/state';
 import { Decoration, DecorationSet, EditorView, WidgetType, keymap } from '@codemirror/view';
 import { syntaxTree } from '@codemirror/language';
 import { isCursorInNodeLines } from '../../utils/cursor';
-import { hideRange, showMarker } from '../../utils/decoration';
+import { showMarker } from '../../utils/decoration';
 
 /**
  * Live-preview extension for GitHub-style alerts / Obsidian callouts.
@@ -174,9 +174,9 @@ function buildAlertDecorations(state: EditorState): DecorationSet {
                         );
                     } else {
                         if (!cursorOnBlock) {
-                            // Hide the `> ` prefix on content lines — space-preserving
+                            // Hide the `> ` prefix on content lines — collapsed to zero width
                             if (markerMatch && markerEnd > line.from) {
-                                decorations.push(hideRange(line.from, markerEnd));
+                                decorations.push(Decoration.replace({}).range(line.from, markerEnd));
                             }
                         } else {
                             // Show `> ` styled

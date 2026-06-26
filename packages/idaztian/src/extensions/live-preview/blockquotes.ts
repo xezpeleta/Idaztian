@@ -2,15 +2,19 @@ import { Range } from '@codemirror/state';
 import { Decoration, DecorationSet, EditorView, ViewPlugin, ViewUpdate } from '@codemirror/view';
 import { syntaxTree } from '@codemirror/language';
 import { isCursorInNodeLines } from '../../utils/cursor';
-import { hideRange, showMarker } from '../../utils/decoration';
+import { showMarker } from '../../utils/decoration';
 
 /**
  * Live-preview extension for blockquotes.
  *
  * Behavior:
- * - Cursor away from the blockquote: hides `> ` prefix on each line,
- *   applies blockquote styling (space-preserving hiding)
+ * - Cursor away from the blockquote: hides `> ` prefix on each line
+ *   (collapsed to zero width), applies blockquote styling
  * - Cursor on any line of the blockquote: shows `> ` prefix, keeps styling
+ *
+ * Note: Uses Decoration.replace({}) (not hideRange) for the same reason as
+ * headings — `> ` is a line-level prefix. There's no cross-line cursor drift
+ * since the cursor is always within the blockquote when it's visible.
  */
 
 function buildBlockquoteDecorations(view: EditorView): DecorationSet {
@@ -43,8 +47,10 @@ function buildBlockquoteDecorations(view: EditorView): DecorationSet {
                             );
 
                             if (!cursorOnBlock) {
-                                // Hide the `> ` marker — space-preserving, no cursor drift
-                                decorations.push(hideRange(line.from, markerEnd));
+                                // Collapse `> ` prefix to zero width
+                                decorations.push(
+                                    Decoration.replace({}).range(line.from, markerEnd)
+                                );
                             } else {
                                 decorations.push(showMarker(line.from, markerEnd));
                             }

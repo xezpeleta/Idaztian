@@ -2,15 +2,21 @@ import { Range } from '@codemirror/state';
 import { Decoration, DecorationSet, EditorView, ViewPlugin, ViewUpdate } from '@codemirror/view';
 import { syntaxTree } from '@codemirror/language';
 import { isCursorInNodeLines } from '../../utils/cursor';
-import { hideRange, showMarker } from '../../utils/decoration';
+import { showMarker } from '../../utils/decoration';
 
 /**
  * Live-preview extension for ATX headings (# H1 through ###### H6).
  *
  * Behavior:
  * - Always: applies heading size/style CSS class to the heading line
- * - Cursor away from line: hides the `# ` prefix marker (space-preserving)
+ * - Cursor away from line: hides the `# ` prefix marker (collapsed to zero width)
  * - Cursor on line: shows the `# ` prefix marker
+ *
+ * Note: Uses Decoration.replace({}) (not hideRange) to collapse the `# `
+ * prefix to zero width when hidden. This is correct for headings because:
+ * - The cursor is always on the heading line itself, so there's no
+ *   cross-line cursor drift concern.
+ * - Collapsing the `# ` visually centers the heading text like Obsidian.
  */
 
 function buildHeadingDecorations(view: EditorView): DecorationSet {
@@ -40,10 +46,13 @@ function buildHeadingDecorations(view: EditorView): DecorationSet {
                     Decoration.mark({ class: `idz-h${level}` }).range(node.from, node.to)
                 );
 
-                // Hide/show the hash prefix based on cursor proximity.
-                // Uses mark-based hiding (not replace) to preserve horizontal space.
+                // Hide the hash prefix when cursor is away.
+                // Uses replace (zero-width) for headings since the # prefix
+                // should visually collapse — no cross-line cursor drift risk.
                 if (cursorAway) {
-                    decorations.push(hideRange(node.from, hashEnd));
+                    decorations.push(
+                        Decoration.replace({}).range(node.from, hashEnd)
+                    );
                 } else {
                     decorations.push(showMarker(node.from, hashEnd));
                 }
