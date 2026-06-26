@@ -30,7 +30,7 @@ const container = document.getElementById('editor-container')!
 
 const editor = new IdaztianEditor({
   parent: container,
-  initialContent: '# Simple Vite Example\n\nThis is a minimal example demonstrating how to embed **Idaztian** in your web app using Vite and TypeScript.\n\n- It features live-preview out of the box\n- Just import the style and the class, and initialize it.\n- You can optionally enable the toolbar or context menu.',
+  initialContent: '# Simple Vite Example\n\nThis is a minimal example demonstrating how to embed **Idaztian** in your web app using Vite and TypeScript.\n\n- It features live-preview out of the box\n- Just import the style and the class, and initialize it.\n- You can optionally enable the toolbar or context menu.\n\n## Math\n\nInline math: $E = mc^2$\n\nBlock math:\n\n$$\n\\int_{-\\infty}^{\\infty} e^{-x^2} dx = \\sqrt{\\pi}\n$$',
   toolbar: true,
   readOnly: false,
   theme: 'light'

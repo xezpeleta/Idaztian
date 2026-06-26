@@ -74,7 +74,7 @@ export const DEFAULT_CONFIG: Required<Omit<IdaztianConfig, 'parent' | 'onChange'
     extensions: {
         tables: true,
         taskLists: true,
-        math: false, // Phase 2
+        math: true,
         alerts: true,
         footnotes: true,
         syntaxHighlighting: true,
