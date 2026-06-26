@@ -352,7 +352,18 @@ class TableWidget extends WidgetType {
         return t.closest('[contenteditable="true"]') !== null;
     }
 
-    get estimatedHeight(): number { return -1; }
+    /**
+     * Estimated height in pixels. CM6 uses this for the HeightOracle to
+     * correctly map pixel coordinates to document positions. Without a
+     * proper estimate, navigation (ArrowUp/Down) and click positions after
+     * tables are wrong.
+     *
+     * Each row: ~36px (0.95em font × 1.6 line-height × 16px + 12px padding).
+     * Ghost row: 24px.
+     */
+    get estimatedHeight(): number {
+        return (1 + this.data.rows.length) * 36 + 24;
+    }
 }
 
 // ── StateField ─────────────────────────────────────────────────────────────
