@@ -205,6 +205,8 @@ export const ilunabarLightTheme = EditorView.theme(
             paddingLeft: '1em',
             paddingRight: '1em',
             display: 'block',
+            // Override .cm-content line-height for tighter code rendering
+            lineHeight: '1.45 !important',
         },
         '.idz-code-first': {
             borderTopLeftRadius: '6px',
@@ -304,6 +306,16 @@ export const ilunabarLightTheme = EditorView.theme(
         '.idz-ordered-marker': {
             color: colors.accent,
             fontWeight: '600',
+            marginRight: '0.3em',
+        },
+        // Raw bullet marker (when cursor is on it) — match the widget width
+        '.idz-marker.idz-bullet-raw': {
+            color: colors.accent,
+            fontWeight: '700',
+            display: 'inline-block',
+            // Same width as the bullet widget + margin
+            minWidth: '1.3em',
+            textAlign: 'center',
         },
         '.idz-checkbox': {
             accentColor: colors.accent,
