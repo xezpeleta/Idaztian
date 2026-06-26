@@ -153,7 +153,6 @@ function buildLinkDecorations(view: EditorView): DecorationSet {
                 // Inline links: [text](url)
                 if (node.name === 'Link') {
                     const cursorOn = isCursorInRange(state, node.from, node.to);
-                    const raw = state.sliceDoc(node.from, node.to);
 
                     // Parse positions using nesting-aware algorithm
                     const positions = findLinkPositions(

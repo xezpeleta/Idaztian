@@ -41,23 +41,6 @@ function isInsideInlineCode(state: EditorState, pos: number): boolean {
     return inside;
 }
 
-/**
- * Check if the character at `pos` is a word character (letter/digit/underscore).
- * If so, we should NOT auto-close because the user is typing inside a word.
- */
-function afterWordChar(state: EditorState, pos: number): boolean {
-    const char = state.sliceDoc(pos, pos + 1);
-    return /\w/.test(char);
-}
-
-/**
- * Check if the character before `pos` is a non-whitespace, non-punctuation char.
- */
-function beforeNonSpace(state: EditorState, pos: number): boolean {
-    const char = state.sliceDoc(Math.max(0, pos - 1), pos);
-    return char !== '' && !/\s/.test(char);
-}
-
 const bracketHandler = EditorView.inputHandler.of(
     (view, from, to, insert) => {
         if (view.composing || view.state.readOnly) return false;
