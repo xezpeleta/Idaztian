@@ -424,31 +424,38 @@ const tableDecorationsField = StateField.define<DecorationSet>({
 // pressing ArrowUp/ArrowDown should enter the table (last/first row) rather
 // than skipping the entire block in one keystroke.
 
+/**
+ * Find the nearest table widget in the given direction. Scans up to 3 lines
+ * to handle cases where there are blank lines between the cursor line and
+ * the table (since blank lines are not part of the table decoration range).
+ */
 function findTableWidgetNear(view: EditorView, direction: 'up' | 'down'): HTMLTableElement | null {
     const sel = view.state.selection.main;
     const cursorLine = view.state.doc.lineAt(sel.head);
 
-    // The line we want to check for adjacency to a table block
-    const targetPos = direction === 'up'
-        ? cursorLine.from - 1   // position just before this line = end of previous line
-        : cursorLine.to + 1;    // position just after this line = start of next line
-
-    if (targetPos < 0 || targetPos > view.state.doc.length) return null;
-
-    // Check if there is a table decoration covering that position
     const decos = view.state.field(tableDecorationsField, false);
     if (!decos) return null;
 
-    let found: HTMLTableElement | null = null;
-    decos.between(targetPos - 1, targetPos + 1, (from, _to) => {
-        if (found) return false;
-        // Find the rendered widget DOM using the data-table-from attribute stamped in toDOM()
-        const outer = view.dom.querySelector<HTMLElement>(`[data-table-from="${from}"]`);
-        if (!outer) return;
-        const tableEl = outer.querySelector<HTMLTableElement>('table.idz-table');
-        if (tableEl) found = tableEl;
-    });
-    return found;
+    // Scan up to 3 lines away from the cursor
+    for (let offset = 0; offset <= 3; offset++) {
+        const targetPos = direction === 'up'
+            ? view.state.doc.lineAt(Math.max(1, cursorLine.number - offset)).from - 1
+            : view.state.doc.lineAt(Math.min(view.state.doc.lines, cursorLine.number + offset)).to + 1;
+
+        if (targetPos < 0 || targetPos > view.state.doc.length) continue;
+
+        let found: HTMLTableElement | null = null;
+        decos.between(targetPos - 1, targetPos + 1, (from, _to) => {
+            if (found) return false;
+            const outer = view.dom.querySelector<HTMLElement>(`[data-table-from="${from}"]`);
+            if (!outer) return;
+            const tableEl = outer.querySelector<HTMLTableElement>('table.idz-table');
+            if (tableEl) found = tableEl;
+        });
+        if (found) return found;
+    }
+
+    return null;
 }
 
 function focusTableEdge(

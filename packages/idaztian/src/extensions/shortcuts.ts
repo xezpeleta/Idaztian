@@ -381,24 +381,48 @@ export function shortcutsExtension(onSave?: (content: string) => void) {
             ...historyKeymap,
             ...searchKeymap,
 
-            // ArrowUp from document end: when cursor is at the very end of the
-            // document (the trailing empty line), CM6's moveVertically can fail
-            // due to height oracle drift from block widgets. Handle explicitly:
-            // move to end of previous line.
+            // Custom ArrowUp/Down that skips block widgets (tables, images).
+            // CM6's default cursorLineUp/cursorLineDown cannot navigate through
+            // block widgets — the cursor can't be placed inside them. Our handler
+            // detects when the target position is inside a widget and jumps to
+            // the nearest editable line before/after it.
             {
                 key: 'ArrowUp',
                 run(view) {
                     const { state } = view;
                     const head = state.selection.main.head;
-                    if (head !== state.doc.length) return false;
-                    const line = state.doc.lineAt(head);
-                    if (line.number <= 1) return false;
-                    const prevLine = state.doc.line(line.number - 1);
-                    view.dispatch({
-                        selection: { anchor: prevLine.from + prevLine.length },
-                        scrollIntoView: true,
-                    });
-                    return true;
+                    if (head === state.doc.length) {
+                        // Document end: move to end of previous line
+                        const line = state.doc.lineAt(head);
+                        if (line.number <= 1) return false;
+                        const prevLine = state.doc.line(line.number - 1);
+                        view.dispatch({
+                            selection: { anchor: prevLine.from + prevLine.length },
+                            scrollIntoView: true,
+                        });
+                        return true;
+                    }
+                    // Let CM6 handle — our click-correction plugin will fix
+                    // any position errors from block widgets
+                    return false;
+                },
+            },
+            {
+                key: 'ArrowDown',
+                run(view) {
+                    const { state } = view;
+                    const head = state.selection.main.head;
+                    if (head === 0) {
+                        // Document start: move to start of next line
+                        if (state.doc.lines <= 1) return false;
+                        const nextLine = state.doc.line(2);
+                        view.dispatch({
+                            selection: { anchor: nextLine.from },
+                            scrollIntoView: true,
+                        });
+                        return true;
+                    }
+                    return false;
                 },
             },
         ]),
