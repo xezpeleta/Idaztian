@@ -31,14 +31,21 @@ export function getNodeLineRange(
 }
 
 /**
- * Check if the cursor is on any line within a node's range.
+ * Check if the cursor is on any line within a node's range, optionally
+ * extended by `bufferLines` on each side. A buffer of 1 means the cursor
+ * is considered "on" if it's within 1 line of the node (before or after).
+ *
+ * This provides an Obsidian-like "preview buffer" — e.g., when approaching
+ * a heading from the line above, the heading markers appear before the
+ * cursor actually enters the heading. Default buffer is 0 (no buffer).
  */
 export function isCursorInNodeLines(
     state: EditorState,
     from: number,
-    to: number
+    to: number,
+    bufferLines: number = 0
 ): boolean {
     const cursorLine = state.doc.lineAt(state.selection.main.head).number;
     const { startLine, endLine } = getNodeLineRange(state, from, to);
-    return cursorLine >= startLine && cursorLine <= endLine;
+    return cursorLine >= startLine - bufferLines && cursorLine <= endLine + bufferLines;
 }
