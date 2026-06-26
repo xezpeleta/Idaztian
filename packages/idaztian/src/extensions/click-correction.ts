@@ -16,7 +16,7 @@ import { EditorView, ViewPlugin, ViewUpdate } from '@codemirror/view';
  */
 
 module impl {
-    const DEBUG = true;
+    const DEBUG = false;
 
     let downEvent: MouseEvent | null = null;
     let editorView: EditorView | null = null;
