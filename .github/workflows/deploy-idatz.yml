@@ -46,20 +46,9 @@ jobs:
         run: |
           mkdir -p .gh-pages-dist
 
-          # Redirect to idatzi GH Pages (idatzi moved to its own repo)
-          cat > .gh-pages-dist/index.html << 'HTML'
-          <!DOCTYPE html>
-          <html lang="en">
-          <head>
-            <meta charset="UTF-8">
-            <meta http-equiv="refresh" content="0; url=https://xezpeleta.github.io/idatzi/">
-            <title>Idaztian — redirecting to Idatzi demo</title>
-          </head>
-          <body>
-            <p><a href="https://xezpeleta.github.io/idatzi/">Go to Idatzi demo →</a></p>
-          </body>
-          </html>
-          HTML
+          # Landing page (from docs/ directory)
+          cp docs/index.html .gh-pages-dist/index.html
+          cp docs/screenshot.png .gh-pages-dist/screenshot.png
 
           # API docs
           mkdir -p .gh-pages-dist/docs
