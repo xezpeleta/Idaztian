@@ -45,12 +45,7 @@ class ImageWidget extends WidgetType {
         return { left: rect.left, right: rect.right, top: rect.top, bottom: rect.bottom };
     }
 
-    get estimatedHeight(): number {
-        // Default estimate — the actual height is determined by the image.
-        // coordsAt provides accurate rect during mouse click resolution.
-        // A reasonable default prevents excessive height oracle drift.
-        return 300;
-    }
+    get estimatedHeight(): number { return -1; }
 
     ignoreEvent(): boolean {
         return false;

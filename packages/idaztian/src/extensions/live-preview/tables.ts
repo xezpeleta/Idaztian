@@ -364,12 +364,9 @@ class TableWidget extends WidgetType {
     }
 
     get estimatedHeight(): number {
-        // Compute approximate height from row count.
-        // Each row: 0.95em × 1.6 line-height × 16px ≈ 24.3px text
-        // + 6px top + 6px bottom padding = ~36.3px
-        // + 1px border (border-collapse: collapse makes borders shared)
-        // Ghost row: 24px
-        return (1 + this.data.rows.length) * 36 + 24;
+        // -1 means CM6 will measure the actual DOM height.
+        // This is correct for tables since their rendered height varies.
+        return -1;
     }
 }
 
