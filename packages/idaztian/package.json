@@ -1,6 +1,6 @@
 {
   "name": "idaztian",
-  "version": "1.1.0",
+  "version": "1.2.0",
   "description": "Obsidian-style live-preview markdown editor framework for the web",
   "license": "GPL-3.0",
   "type": "module",
