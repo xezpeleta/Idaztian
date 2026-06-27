@@ -17,17 +17,17 @@ export interface TransformersJsAiConfig {
     /**
      * HuggingFace model ID to use for text generation.
      *
-     * @default "HuggingFaceTB/SmolLM2-135M-Instruct"
+     * @default "onnx-community/Qwen2.5-0.5B-Instruct"
      */
     modelId?: string;
 
     /**
      * Quantization data type.
-     * - 'q4' (4-bit, ~30MB) — smallest, fastest, slightly lower quality
-     * - 'q4f16' (~50MB) — balanced
-     * - 'fp16' (~300MB) — best quality, largest download
+     * - 'q4f16' (~500MB) — best balance of size and quality
+     * - 'q4' (~800MB) — 4-bit weights
+     * - 'fp16' (~1GB) — best quality, largest download
      *
-     * @default "q4"
+     * @default "q4f16"
      */
     dtype?: 'q4' | 'q4f16' | 'fp16';
 
@@ -43,7 +43,7 @@ export interface TransformersJsAiConfig {
     /**
      * Maximum new tokens to generate per completion.
      *
-     * @default 30
+     * @default 40
      */
     maxNewTokens?: number;
 
@@ -58,7 +58,7 @@ export interface TransformersJsAiConfig {
      * System prompt prepended to every completion request.
      * Use this to guide the model's behavior.
      *
-     * @default "You are a helpful writing assistant. Continue the text naturally in English.\nOutput ONLY the continuation — no explanations, no greetings, no questions.\nMatch the tone and style of the preceding text."
+     * @default "You are a concise writing assistant. Your task is to continue the provided text naturally. Output ONLY the continuation — never add explanations, greetings, or commentary. Match the tone, style, and language of the preceding text exactly."
      */
     systemPrompt?: string;
 
@@ -98,7 +98,7 @@ const state: TransformersState = {
 
 /**
  * Strip the instruction prompt prefix from model output.
- * SmolLM2-135M-Instruct tends to repeat part of the prompt or add
+ * Instruct models sometimes repeat part of the prompt or add
  * a system-like prefix. We strip everything before the actual
  * continuation.
  */
@@ -118,10 +118,6 @@ function cleanOutput(raw: string, context: string): string | null {
 
     // Don't return empty strings
     if (cleaned.length === 0) return null;
-
-    // If output looks like it's starting a new sentence/section
-    // instead of continuing, it's probably not a useful continuation
-    // (e.g., the model is generating a new paragraph about something else)
 
     return cleaned;
 }
@@ -151,7 +147,7 @@ function isWebGPUAvailable(): boolean {
  * import { createTransformersJsProvider } from 'idaztian';
  *
  * const provider = createTransformersJsProvider({
- *   modelId: 'HuggingFaceTB/SmolLM2-135M-Instruct',
+ *   modelId: 'onnx-community/Qwen2.5-0.5B-Instruct',
  *   onProgress: (pct, status) => console.log(`${pct}%: ${status}`),
  *   onReady: () => console.log('Model ready!'),
  * });
@@ -161,12 +157,12 @@ export function createTransformersJsProvider(
     config: TransformersJsAiConfig = {},
 ): AiCompletionProvider & { preload(): Promise<void> } {
     const {
-        modelId = 'HuggingFaceTB/SmolLM2-135M-Instruct',
-        dtype: preferredDtype = 'q4',
+        modelId = 'onnx-community/Qwen2.5-0.5B-Instruct',
+        dtype: preferredDtype = 'q4f16',
         device: preferredDevice,
-        maxNewTokens = 30,
+        maxNewTokens = 40,
         temperature = 0.3,
-        systemPrompt = 'You are a helpful writing assistant. Continue the text naturally in English. Output ONLY the continuation — no explanations, no greetings, no questions. Match the tone and style of the preceding text.',
+        systemPrompt = 'You are a concise writing assistant. Your task is to continue the provided text naturally. Output ONLY the continuation — never add explanations, greetings, or commentary. Match the tone, style, and language of the preceding text exactly.',
         onProgress,
         onReady,
         onError,
@@ -244,22 +240,19 @@ export function createTransformersJsProvider(
                     { role: 'user', content: context },
                 ];
 
-                // Transformers.js text-generation pipeline
-                // Format the messages as a single prompt for instruct models
-                const prompt = messages
-                    .map((m) => `<|${m.role}|>\n${m.content}<|end|>`)
-                    .join('\n') + '\n<|assistant|>\n';
-
-                const result = await generator(prompt, {
+                // Transformers.js v3+ automatically applies the model's
+                // chat template (e.g., Qwen's <|im_start|> format)
+                const result = await generator(messages, {
                     max_new_tokens: maxNewTokens,
                     temperature,
                     do_sample: temperature > 0,
-                    // Stop at end-of-turn token
-                    stop_strings: ['<|end|>', '<|user|>', '<|system|>'],
                 });
 
-                const raw = (result as any)[0]?.generated_text || '';
-                return cleanOutput(raw, prompt);
+                // With messages input, v3+ returns an array with the
+                // assistant message at the end
+                const outMessages = (result as any)[0];
+                const raw = outMessages?.generated_text?.at(-1)?.content || '';
+                return cleanOutput(raw, context);
             } catch {
                 return null;
             }

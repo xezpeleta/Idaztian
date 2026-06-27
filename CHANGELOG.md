@@ -1,5 +1,19 @@
 # Changelog
 
+## [1.2.3] — 2025-06-27
+
+### Editor Framework (`idaztian`)
+
+#### Changed
+- **Default model upgraded to Qwen2.5-0.5B-Instruct** (from SmolLM2-135M-Instruct).
+  - 500M params (3.7× larger), significantly better completions.
+  - IFEval ~51 vs 29.9 (SmolLM2-135M).
+  - Default quantization changed to `q4f16` (~500MB download).
+  - Uses Transformers.js v3+ native chat template handling (messages API).
+  - Default `maxNewTokens` increased from 30 to 40.
+
+---
+
 ## [1.2.2] — 2025-06-27
 
 ### Editor Framework (`idaztian`)
