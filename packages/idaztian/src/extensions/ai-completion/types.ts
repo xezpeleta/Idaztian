@@ -62,9 +62,10 @@ export interface AiCompletionProvider {
  */
 export interface AiCompletionConfig {
     /**
-     * REQUIRED. The completion provider that calls your AI backend.
+     * REQUIRED unless `transformersJs` is set.
+     * The completion provider that calls your AI backend.
      */
-    provider: AiCompletionProvider;
+    provider?: AiCompletionProvider;
 
     /**
      * Milliseconds to wait after the user stops typing before
@@ -103,4 +104,19 @@ export interface AiCompletionConfig {
      * @default true
      */
     defaultKeymap?: boolean;
+
+    /**
+     * Use the built-in Transformers.js provider for fully-local AI completion.
+     *
+     * When set to `true`, uses SmolLM3-135M-Instruct with q4 quantization
+     * running entirely in the browser (WebGPU or WASM fallback).
+     *
+     * When set to a config object, you can customize the model, dtype, etc.
+     *
+     * The model is downloaded on first use (~30MB) and cached in the browser.
+     * This overrides any manually-provided `provider`.
+     *
+     * @default undefined
+     */
+    transformersJs?: boolean | import('./transformers-provider').TransformersJsAiConfig;
 }

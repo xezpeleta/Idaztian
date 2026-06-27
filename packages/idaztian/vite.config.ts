@@ -17,8 +17,10 @@ export default defineConfig({
             fileName: (format) => format === 'es' ? 'idaztian.js' : 'idaztian.umd.cjs',
         },
         rollupOptions: {
-            // Bundle all dependencies for both ESM and UMD so it works out of the box
-            external: [],
+            // Do not bundle @huggingface/transformers — it's loaded dynamically.
+            external: [
+                /^@huggingface\/transformers/,
+            ],
         },
         sourcemap: true,
         cssCodeSplit: false,

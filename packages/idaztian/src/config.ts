@@ -21,7 +21,11 @@ export interface IdaztianExtensionConfig {
     strikethrough?: boolean;
     /**
      * AI-powered inline completion (ghost text).
-     * Pass a config object with a provider to enable, or false/omit to disable.
+     *
+     * Pass a config object with a `provider` to enable, or `false`/omit to disable.
+     *
+     * For fully-local browser-side completion, use `transformersJs: true` instead
+     * of providing a custom provider — this runs SmolLM3 entirely in the browser.
      */
     aiCompletion?: AiCompletionConfig | false;
 }

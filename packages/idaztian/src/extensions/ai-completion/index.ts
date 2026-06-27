@@ -23,6 +23,8 @@ import { AiCompletionState } from './state';
 import { createFetchPlugin } from './fetch-plugin';
 import { createRenderPlugin } from './render-plugin';
 import { aiCompletionKeymap } from './keymap';
+import { createTransformersJsProvider } from './transformers-provider';
+import type { TransformersJsAiConfig } from './transformers-provider';
 
 /**
  * Create the AI inline completion extension.
@@ -34,14 +36,30 @@ import { aiCompletionKeymap } from './keymap';
  * @returns Array of CodeMirror extensions to install in the editor.
  */
 export function aiCompletion(config: AiCompletionConfig): Extension[] {
-    const {
+    let {
         provider,
         debounceMs = 500,
         maxContextChars = 4000,
         acceptOnClick = true,
         showAcceptReject = false,
         defaultKeymap = true,
+        transformersJs,
     } = config;
+
+    // If transformersJs is set, create the built-in provider automatically.
+    // This overrides any manually-provided provider.
+    if (transformersJs) {
+        const tfConfig: TransformersJsAiConfig =
+            typeof transformersJs === 'object' ? transformersJs : {};
+        provider = createTransformersJsProvider(tfConfig);
+    }
+
+    // Validate that we have a provider
+    if (!provider) {
+        throw new Error(
+            'aiCompletion: either `provider` or `transformersJs` must be provided',
+        );
+    }
 
     const extensions: Extension[] = [
         // State field — must be first so plugins can read it
@@ -61,3 +79,7 @@ export function aiCompletion(config: AiCompletionConfig): Extension[] {
 
     return extensions;
 }
+
+// Re-export the built-in Transformers.js provider
+export { createTransformersJsProvider, getTransformersJsState } from './transformers-provider';
+export type { TransformersJsAiConfig } from './transformers-provider';
