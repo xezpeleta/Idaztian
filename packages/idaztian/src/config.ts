@@ -2,6 +2,8 @@
  * Configuration types for IdaztianEditor
  */
 
+import type { AiCompletionConfig } from './extensions/ai-completion/types';
+
 export interface IdaztianExtensionConfig {
     /** Enable GFM tables (default: true) */
     tables?: boolean;
@@ -17,6 +19,11 @@ export interface IdaztianExtensionConfig {
     syntaxHighlighting?: boolean;
     /** Enable strikethrough (default: true) */
     strikethrough?: boolean;
+    /**
+     * AI-powered inline completion (ghost text).
+     * Pass a config object with a provider to enable, or false/omit to disable.
+     */
+    aiCompletion?: AiCompletionConfig | false;
 }
 
 export interface IdaztianConfig {

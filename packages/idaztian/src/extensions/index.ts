@@ -17,6 +17,8 @@ import { dragDropExtension } from './drag-drop';
 import { clickCorrectionPlugin } from './click-correction';
 import { contextMenuExtension } from './context-menu';
 import { toolbarExtension, DEFAULT_TOOLBAR_ITEMS, ToolbarItemId } from './toolbar';
+import { aiCompletion } from './ai-completion';
+import type { AiCompletionConfig } from './ai-completion/types';
 
 /**
  * Assembles all live-preview extensions based on the config.
@@ -51,6 +53,11 @@ export function buildExtensions(config: IdaztianExtensionConfig): Extension[] {
     // Math is disabled by default (large KaTeX dependency, lazy-loaded)
     if (config.math) {
         extensions.push(mathExtension());
+    }
+
+    // AI inline completion (disabled by default)
+    if (config.aiCompletion) {
+        extensions.push(...aiCompletion(config.aiCompletion as AiCompletionConfig));
     }
 
     return extensions;

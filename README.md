@@ -10,6 +10,7 @@ Integrate it in your note taking app, blog, documentation site, or any web appli
 
 - 🖊️ **Live preview** — inline rendering with context-aware syntax reveal
 - 📝 **Full CommonMark** + GFM tables, task lists, alerts, math, footnotes
+- 🤖 **AI completion** — pluggable inline ghost-text completions (OpenAI, Ollama, etc.)
 - 🔌 **Embeddable** — drop into any web application
 - ⌨️ **Keyboard shortcuts** — Obsidian-compatible
 - 🌙 **Themes** — themes support
@@ -36,7 +37,47 @@ const editor = new IdaztianEditor({
 });
 ```
 
-For more information, see [API Documentation](https://xezpeleta.github.io/Idaztian/docs/) and [Examples](https://xezpeleta.github.io/Idaztian/examples/).
+### AI Inline Completion
+
+Enable Copilot-style ghost text completions by passing an AI provider:
+
+```typescript
+const editor = new IdaztianEditor({
+  parent: document.getElementById('editor'),
+  initialContent: '# My Notes\n\n',
+  extensions: {
+    aiCompletion: {
+      provider: {
+        async fetchCompletion(context, signal) {
+          const res = await fetch('https://api.openai.com/v1/chat/completions', {
+            method: 'POST',
+            headers: {
+              'Content-Type': 'application/json',
+              'Authorization': `Bearer ${API_KEY}`,
+            },
+            body: JSON.stringify({
+              model: 'gpt-4o-mini',
+              messages: [
+                { role: 'system', content: 'Continue the text naturally. Output ONLY the continuation.' },
+                { role: 'user', content: context },
+              ],
+              max_tokens: 150,
+            }),
+            signal,
+          });
+          const data = await res.json();
+          return data.choices?.[0]?.message?.content?.trim() || null;
+        },
+      },
+      debounceMs: 500,
+    },
+  },
+});
+```
+
+Works with any OpenAI-compatible API — OpenAI, Ollama, Groq, LM Studio, and more. Press **Tab** to accept a suggestion, **Escape** to dismiss.
+
+```For more information, see [API Documentation](https://xezpeleta.github.io/Idaztian/docs/) and [Examples](https://xezpeleta.github.io/Idaztian/examples/).
 
 ## Idatzi Desktop App
 
