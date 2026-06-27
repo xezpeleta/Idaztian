@@ -1,5 +1,14 @@
 # Changelog
 
+## [1.2.2] — 2025-06-27
+
+### Editor Framework (`idaztian`)
+
+#### Changed
+- **Ghost text now rendered dimmed (opacity 0.38) and italic**, visually distinct from actual text. Injected via `<style>` element (once, lazily).
+
+---
+
 ## [1.2.1] — 2025-06-27
 
 ### Editor Framework (`idaztian`)
