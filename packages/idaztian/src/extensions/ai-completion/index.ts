@@ -83,7 +83,3 @@ export function aiCompletion(config: AiCompletionConfig): Extension[] {
 // Re-export the built-in Transformers.js provider
 export { createTransformersJsProvider, getTransformersJsState } from './transformers-provider';
 export type { TransformersJsAiConfig } from './transformers-provider';
-
-// Re-export the HuggingFace Inference API provider
-export { createHuggingFaceInferenceProvider } from './huggingface-inference-provider';
-export type { HuggingFaceInferenceConfig } from './huggingface-inference-provider';
