@@ -17,7 +17,7 @@ export interface TransformersJsAiConfig {
     /**
      * HuggingFace model ID to use for text generation.
      *
-     * @default "HuggingFaceTB/SmolLM3-135M-Instruct"
+     * @default "HuggingFaceTB/SmolLM2-135M-Instruct"
      */
     modelId?: string;
 
@@ -98,7 +98,7 @@ const state: TransformersState = {
 
 /**
  * Strip the instruction prompt prefix from model output.
- * SmolLM3-Instruct tends to repeat part of the prompt or add
+ * SmolLM2-135M-Instruct tends to repeat part of the prompt or add
  * a system-like prefix. We strip everything before the actual
  * continuation.
  */
@@ -151,7 +151,7 @@ function isWebGPUAvailable(): boolean {
  * import { createTransformersJsProvider } from 'idaztian';
  *
  * const provider = createTransformersJsProvider({
- *   modelId: 'HuggingFaceTB/SmolLM3-135M-Instruct',
+ *   modelId: 'HuggingFaceTB/SmolLM2-135M-Instruct',
  *   onProgress: (pct, status) => console.log(`${pct}%: ${status}`),
  *   onReady: () => console.log('Model ready!'),
  * });
@@ -161,7 +161,7 @@ export function createTransformersJsProvider(
     config: TransformersJsAiConfig = {},
 ): AiCompletionProvider & { preload(): Promise<void> } {
     const {
-        modelId = 'HuggingFaceTB/SmolLM3-135M-Instruct',
+        modelId = 'HuggingFaceTB/SmolLM2-135M-Instruct',
         dtype: preferredDtype = 'q4',
         device: preferredDevice,
         maxNewTokens = 30,

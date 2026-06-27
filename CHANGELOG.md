@@ -1,5 +1,30 @@
 # Changelog
 
+## [1.3.0] — 2025-06-27
+
+### Editor Framework (`idaztian`)
+
+#### Added
+- **HuggingFace Inference API provider** (`createHuggingFaceInferenceProvider`) — lightweight browser-side AI completions using the free HuggingFace Inference API. No model download required (~120ms latency vs ~30MB download). Token stored in `localStorage`, token dialog pattern for user auth.
+  - Exported as `createHuggingFaceInferenceProvider` and `HuggingFaceInferenceConfig` from the public API
+
+#### Changed
+- **Default model upgraded from SmolLM-135M-Instruct to SmolLM2-135M-Instruct** — ~2× better instruction following (IFEval 29.9 vs 17.2), trained on 2T tokens vs ~600B. Same 135M parameter count, no speed regression.
+
+---
+
+## [1.2.0] — 2025-06-27
+
+### Editor Framework (`idaztian`)
+
+#### Added
+- **Built-in Transformers.js provider** (`createTransformersJsProvider`) — fully-local browser-side AI completions using Transformers.js with q4 quantization. Supports WebGPU with WASM fallback. Model cached in IndexedDB.
+  - Optional `@huggingface/transformers` peer dependency
+  - `getTransformersJsState()` for progress/status monitoring
+  - `preload()` for eager model loading
+
+---
+
 ## [1.1.0] — 2025-06-27
 
 ### Editor Framework (`idaztian`)

@@ -108,7 +108,7 @@ export interface AiCompletionConfig {
     /**
      * Use the built-in Transformers.js provider for fully-local AI completion.
      *
-     * When set to `true`, uses SmolLM3-135M-Instruct with q4 quantization
+     * When set to `true`, uses SmolLM2-135M-Instruct with q4 quantization
      * running entirely in the browser (WebGPU or WASM fallback).
      *
      * When set to a config object, you can customize the model, dtype, etc.
