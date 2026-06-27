@@ -108,12 +108,12 @@ export interface AiCompletionConfig {
     /**
      * Use the built-in Transformers.js provider for fully-local AI completion.
      *
-     * When set to `true`, uses Qwen2.5-0.5B-Instruct with q4f16 quantization
+     * When set to `true`, uses Qwen2.5-0.5B-Instruct with q4 quantization
      * running entirely in the browser (WebGPU or WASM fallback).
      *
      * When set to a config object, you can customize the model, dtype, etc.
      *
-     * The model is downloaded on first use (~500MB) and cached in the browser.
+     * The model is downloaded on first use (~750MB) and cached in the browser.
      * This overrides any manually-provided `provider`.
      *
      * @default undefined

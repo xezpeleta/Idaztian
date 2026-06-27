@@ -1,5 +1,19 @@
 # Changelog
 
+## [1.3.1] — 2025-06-27
+
+### Editor Framework (`idaztian`)
+
+#### Fixed
+- **Default dtype changed from `q4f16` to `q4`** — fixes ONNX Runtime crash in browsers.
+  `q4f16` uses fp16 activations which trigger a known graph optimization bug
+  (`SimplifiedLayerNormFusion` / `InsertedPrecisionFreeCast`) in ONNX Runtime WASM
+  (see transformers.js #1698). `q4` uses fp32 activations and is fully compatible.
+  Tradeoff: ~750MB download vs ~500MB for `q4f16`.
+- Updated docs and comments to recommend `q4` for browser use.
+
+---
+
 ## [1.2.3] — 2025-06-27
 
 ### Editor Framework (`idaztian`)

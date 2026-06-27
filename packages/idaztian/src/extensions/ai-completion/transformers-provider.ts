@@ -23,11 +23,15 @@ export interface TransformersJsAiConfig {
 
     /**
      * Quantization data type.
-     * - 'q4f16' (~500MB) — best balance of size and quality
-     * - 'q4' (~800MB) — 4-bit weights
-     * - 'fp16' (~1GB) — best quality, largest download
+     * - 'q4' (~750MB) — 4-bit weights, fp32 activations (most compatible)
+     * - 'q4f16' (~500MB) — 4-bit weights, fp16 activations (may crash on WASM)
+     * - 'fp16' (~1GB) — best quality, largest download (may crash on WASM)
      *
-     * @default "q4f16"
+     * NOTE: 'q4f16' and 'fp16' can cause ONNX Runtime crashes in browsers
+     * due to a known graph optimization bug (see transformers.js #1698).
+     * Use 'q4' for browser compatibility.
+     *
+     * @default "q4"
      */
     dtype?: 'q4' | 'q4f16' | 'fp16';
 
@@ -148,6 +152,7 @@ function isWebGPUAvailable(): boolean {
  *
  * const provider = createTransformersJsProvider({
  *   modelId: 'onnx-community/Qwen2.5-0.5B-Instruct',
+ *   dtype: 'q4',
  *   onProgress: (pct, status) => console.log(`${pct}%: ${status}`),
  *   onReady: () => console.log('Model ready!'),
  * });
@@ -158,7 +163,7 @@ export function createTransformersJsProvider(
 ): AiCompletionProvider & { preload(): Promise<void> } {
     const {
         modelId = 'onnx-community/Qwen2.5-0.5B-Instruct',
-        dtype: preferredDtype = 'q4f16',
+        dtype: preferredDtype = 'q4',
         device: preferredDevice,
         maxNewTokens = 40,
         temperature = 0.3,
